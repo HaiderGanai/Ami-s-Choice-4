@@ -11,7 +11,7 @@ const { registerSchema } = require("../validations/userValidations");
 const register = async (req, res) => {
     try {
 
-        // ✅ Validate input
+        // Validate input
     const { error, value } = registerSchema.validate(req.body, { abortEarly: false });
 
     if (error) {
@@ -68,7 +68,11 @@ const register = async (req, res) => {
         res.status(201).json({
             status: 'success',
             data: {
-                newUser
+                firstName,
+                lastName,
+                email,
+                phone,
+                address
             }
         });
 
@@ -107,7 +111,9 @@ const login = async (req, res) => {
             };
             //generate JWT token
             const token = jwt.sign(
-                { id: userExixts.id },
+                { id: userExixts.id,
+                    email: userExixts.email
+                 },
                 process.env.JWT_SECRET,
                 { expiresIn: process.env.JWT_EXPIRY}
             );

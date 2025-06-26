@@ -4,6 +4,11 @@ const { sequelize } = require('../config/dbConnect');
 const User = sequelize.define(
   'user',
   {
+    id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4, // Sequelize will auto-generate UUIDs
+    primaryKey: true
+    },
     firstName: {
       type: DataTypes.STRING,
       allowNull: false,

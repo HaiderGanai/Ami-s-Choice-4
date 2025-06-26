@@ -3,10 +3,10 @@ const { sequelize } = require('../config/dbConnect');
 
 const Review = sequelize.define('review', {
     productId: {
-        type: DataTypes.INTEGER
+        type: DataTypes.UUID
     },
     userId: {
-        type: DataTypes.INTEGER
+        type: DataTypes.UUID
     },
     rating: {
         type: DataTypes.DECIMAL(2,1),

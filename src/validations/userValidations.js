@@ -7,10 +7,15 @@ const registerSchema = Joi.object({
   password: Joi.string().min(6).required(),
   passwordConfirm: Joi.string().valid(Joi.ref('password')).required()
     .messages({ 'any.only': 'Passwords do not match' }),
-  phone: Joi.string().pattern(/^[0-9]{10,15}$/).optional(),
-  address: Joi.string().optional(),
-  profilePic: Joi.string().uri().optional(),
-  role: Joi.string().valid('user', 'admin').optional()
+  phone: Joi.string().pattern(/^[0-9]{10,15}$/).required()
+    .messages({
+      'string.pattern.base': 'Phone number must be 10 to 15 digits',
+      'any.required': 'Phone number is required'
+    }),
+  address: Joi.string().required(),
+  profilePic: Joi.string().uri().messages(),
+  role: Joi.string().valid('user', 'admin')
 });
 
 module.exports = { registerSchema };
+

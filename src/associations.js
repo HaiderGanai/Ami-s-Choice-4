@@ -11,6 +11,7 @@ const Order = require('./models/orderModel');
 const Review = require('./models/reviewModel');
 const Coupon = require('./models/couponModel');
 const CouponUsage = require('./models/couponUsageModel');
+const { OrderItem } = require('./models');
 
 console.log('Hello from the associations')
 // ===================
@@ -65,3 +66,11 @@ CouponUsage.belongsTo(User, { foreignKey: 'userId' });
 // console.log(Cart.associations)
 // console.log("cart association::",Cart.associations);
 // console.log("product association::",Product.associations);
+
+// Order - OrderItem
+Order.hasMany(OrderItem, { foreignKey: 'orderId' });
+OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
+
+// Product - OrderItem
+Product.hasMany(OrderItem, { foreignKey: 'productId' });
+OrderItem.belongsTo(Product, { foreignKey: 'productId' });

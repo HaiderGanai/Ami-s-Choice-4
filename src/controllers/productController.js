@@ -1,7 +1,8 @@
-const { Op } = require("sequelize");
-const { Product, Review, User, Order } = require("../models");
+const { Op, fn, literal, col } = require("sequelize");
+const { Product, Review, User, Order, OrderItem } = require("../models");
 const Categories = require("../models/categoriesModel");
 const { sequelize } = require("../config/dbConnect");
+const { Col, Literal } = require("sequelize/lib/utils");
 
 
 
@@ -136,146 +137,582 @@ const addProducts = async (req, res) => {
 
 
 
+//1. without pagination
+// const getAllProducts = async (req, res)=> {
 
-const getAllProducts = async (req, res)=> {
+//     try {
+//         const {
+//             id,
+//             name,
+//             description,
+//             weight,
+//             price,
+//             price_lte,
+//             price_gte,
+//             discountPrice,
+//             isInStock,
+//             stockQuantity,
+//             stockQuantity_gte,
+//             stockQuantity_lte,
+//             category, // category name
+//             createdAt_gte,
+//             createdAt_lte,
+//             updatedAt_gte,
+//             updatedAt_lte
+//         } = req.query;
 
-    try {
-        const {
-            id,
-            name,
-            description,
-            weight,
-            price,
-            price_lte,
-            price_gte,
-            discountPrice,
-            isInStock,
-            stockQuantity,
-            stockQuantity_gte,
-            stockQuantity_lte,
-            category, // category name
-            createdAt_gte,
-            createdAt_lte,
-            updatedAt_gte,
-            updatedAt_lte
-        } = req.query;
+//         const whereClause = {};
 
-        const whereClause = {};
+//         //Handling filters
+//         if (id) whereClause.id = id;
+//         if (name) whereClause.name = { [Op.like]: `%${name}%` };
+//         if (description) whereClause.description = { [Op.like]: `%${description}%` };
+//         if (weight) whereClause.weight = weight;
 
-        //Handling filters
-        if (id) whereClause.id = id;
-        if (name) whereClause.name = { [Op.like]: `%${name}%` };
-        if (description) whereClause.description = { [Op.like]: `%${description}%` };
-        if (weight) whereClause.weight = weight;
+//         if (price) whereClause.price = price;
+//         if (price_gte || price_lte) {
+//             whereClause.price = {
+//                 ...(price_gte && { [Op.gte]: price_gte }),
+//                 ...(price_lte && { [Op.lte]: price_lte })
+//             };
+//         }
 
-        if (price) whereClause.price = price;
-        if (price_gte || price_lte) {
-            whereClause.price = {
-                ...(price_gte && { [Op.gte]: price_gte }),
-                ...(price_lte && { [Op.lte]: price_lte })
-            };
-        }
+//         if (discountPrice === "null") whereClause.discountPrice = null;
+//         if (discountPrice === "notnull") whereClause.discountPrice = { [Op.not]: null };
 
-        if (discountPrice === "null") whereClause.discountPrice = null;
-        if (discountPrice === "notnull") whereClause.discountPrice = { [Op.not]: null };
+//         if (isInStock !== undefined) whereClause.isInStock = isInStock === "true";
 
-        if (isInStock !== undefined) whereClause.isInStock = isInStock === "true";
+//         if (stockQuantity) whereClause.stockQuantity = stockQuantity;
+//         if (stockQuantity_gte || stockQuantity_lte) {
+//             whereClause.stockQuantity = {
+//                 ...(stockQuantity_gte && { [Op.gte]: stockQuantity_gte }),
+//                 ...(stockQuantity_lte && { [Op.lte]: stockQuantity_lte })
+//             };
+//         }
 
-        if (stockQuantity) whereClause.stockQuantity = stockQuantity;
-        if (stockQuantity_gte || stockQuantity_lte) {
-            whereClause.stockQuantity = {
-                ...(stockQuantity_gte && { [Op.gte]: stockQuantity_gte }),
-                ...(stockQuantity_lte && { [Op.lte]: stockQuantity_lte })
-            };
-        }
+//         if (createdAt_gte || createdAt_lte) {
+//             whereClause.createdAt = {
+//                 ...(createdAt_gte && { [Op.gte]: new Date(createdAt_gte) }),
+//                 ...(createdAt_lte && { [Op.lte]: new Date(createdAt_lte) })
+//             };
+//         }
 
-        if (createdAt_gte || createdAt_lte) {
-            whereClause.createdAt = {
-                ...(createdAt_gte && { [Op.gte]: new Date(createdAt_gte) }),
-                ...(createdAt_lte && { [Op.lte]: new Date(createdAt_lte) })
-            };
-        }
-
-        if (updatedAt_gte || updatedAt_lte) {
-            whereClause.updatedAt = {
-                ...(updatedAt_gte && { [Op.gte]: new Date(updatedAt_gte) }),
-                ...(updatedAt_lte && { [Op.lte]: new Date(updatedAt_lte) })
-            };
-        }
+//         if (updatedAt_gte || updatedAt_lte) {
+//             whereClause.updatedAt = {
+//                 ...(updatedAt_gte && { [Op.gte]: new Date(updatedAt_gte) }),
+//                 ...(updatedAt_lte && { [Op.lte]: new Date(updatedAt_lte) })
+//             };
+//         }
         
-        console.log("where clause::", whereClause)
-        // console.log('poduct from the query::', product)
+//         console.log("where clause::", whereClause)
+//         // console.log('poduct from the query::', product)
 
-        // let products;
+//         // let products;
 
 
-        // Category name => CategoryId
-        if(category) {
-            const foundCategory = await Categories.findOne({ where: {name: category }});
-            if(!foundCategory){
-                return res.status(404).json({
-                    status: 'fail',
-                    message: 'Category not found!'
-                });
-            }
-            //if category found, add it into whereClause
-            whereClause.categoryId = foundCategory.id;
-        }
+//         // Category name => CategoryId
+//         if(category) {
+//             const foundCategory = await Categories.findOne({ where: {name: category }});
+//             if(!foundCategory){
+//                 return res.status(404).json({
+//                     status: 'fail',
+//                     message: 'Category not found!'
+//                 });
+//             }
+//             //if category found, add it into whereClause
+//             whereClause.categoryId = foundCategory.id;
+//         }
         
-        const products = await Product.findAll({ where : whereClause });
+//         const products = await Product.findAll({ where : whereClause });
         
-        if(!products || products.length === 0) {
-            return res.status(200).json({
-                status: 'success',
-                message: 'No products found!',
-                data: []
-            })
-        }
-        console.log(`Get Products API is hit, where clause:: ${whereClause}`)
-        return res.status(200).json({
-            status: 'success',
-            data: {
-                products
-            }
-        })
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            status: 'fail',
-            message: 'Something went wrong!'
-        })
+//         if(!products || products.length === 0) {
+//             return res.status(200).json({
+//                 status: 'success',
+//                 message: 'No products found!',
+//                 data: []
+//             })
+//         }
+//         console.log(`Get Products API is hit, where clause:: ${whereClause}`)
+//         return res.status(200).json({
+//             status: 'success',
+//             data: {
+//                 products
+//             }
+//         })
+//     } catch (error) {
+//         console.log(error)
+//         return res.status(500).json({
+//             status: 'fail',
+//             message: 'Something went wrong!'
+//         })
+//     }
+// };
+
+
+//2. with pagination with total products count and total pages count
+// const getAllProducts = async (req, res) => {
+//   try {
+//     const {
+//       id,
+//       name,
+//       description,
+//       weight,
+//       price,
+//       price_lte,
+//       price_gte,
+//       discountPrice,
+//       isInStock,
+//       stockQuantity,
+//       stockQuantity_gte,
+//       stockQuantity_lte,
+//       category, // category name
+//       createdAt_gte,
+//       createdAt_lte,
+//       updatedAt_gte,
+//       updatedAt_lte,
+//       page = 1,
+//       limit = 6
+//     } = req.query;
+
+//     const whereClause = {};
+
+//     if (id) whereClause.id = id;
+//     if (name) whereClause.name = { [Op.like]: `%${name}%` };
+//     if (description) whereClause.description = { [Op.like]: `%${description}%` };
+//     if (weight) whereClause.weight = weight;
+
+//     if (price) whereClause.price = price;
+//     if (price_gte || price_lte) {
+//       whereClause.price = {
+//         ...(price_gte && { [Op.gte]: price_gte }),
+//         ...(price_lte && { [Op.lte]: price_lte })
+//       };
+//     }
+
+//     if (discountPrice === "null") whereClause.discountPrice = null;
+//     if (discountPrice === "notnull") whereClause.discountPrice = { [Op.not]: null };
+
+//     if (isInStock !== undefined) whereClause.isInStock = isInStock === "true";
+
+//     if (stockQuantity) whereClause.stockQuantity = stockQuantity;
+//     if (stockQuantity_gte || stockQuantity_lte) {
+//       whereClause.stockQuantity = {
+//         ...(stockQuantity_gte && { [Op.gte]: stockQuantity_gte }),
+//         ...(stockQuantity_lte && { [Op.lte]: stockQuantity_lte })
+//       };
+//     }
+
+//     if (createdAt_gte || createdAt_lte) {
+//       whereClause.createdAt = {
+//         ...(createdAt_gte && { [Op.gte]: new Date(createdAt_gte) }),
+//         ...(createdAt_lte && { [Op.lte]: new Date(createdAt_lte) })
+//       };
+//     }
+
+//     if (updatedAt_gte || updatedAt_lte) {
+//       whereClause.updatedAt = {
+//         ...(updatedAt_gte && { [Op.gte]: new Date(updatedAt_gte) }),
+//         ...(updatedAt_lte && { [Op.lte]: new Date(updatedAt_lte) })
+//       };
+//     }
+
+//     // Handle category name => id
+//     if (category) {
+//       const foundCategory = await Categories.findOne({ where: { name: category } });
+//       if (!foundCategory) {
+//         return res.status(404).json({
+//           status: 'fail',
+//           message: 'Category not found!'
+//         });
+//       }
+//       whereClause.categoryId = foundCategory.id;
+//     }
+
+//     // Pagination logic
+//     const currentPage = parseInt(page) || 1;
+//     const perPage = parseInt(limit) || 6;
+//     const offset = (currentPage - 1) * perPage;
+
+//     const { count: totalItems, rows: products } = await Product.findAndCountAll({
+//       where: whereClause,
+//       limit: perPage,
+//       offset
+//     });
+
+//     const totalPages = Math.ceil(totalItems / perPage);
+
+//     if (!products || products.length === 0) {
+//       return res.status(200).json({
+//         status: 'success',
+//         message: 'No products found!',
+//         data: [],
+//         pagination: {
+//           totalItems,
+//           totalPages,
+//           currentPage,
+//           perPage
+//         }
+//       });
+//     }
+
+//     return res.status(200).json({
+//       status: 'success',
+//       data: {
+//         products
+//       },
+//       pagination: {
+//         totalItems,
+//         totalPages,
+//         currentPage,
+//         perPage
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({
+//       status: 'fail',
+//       message: 'Something went wrong!'
+//     });
+//   }
+// };
+
+//3. 
+const getAllProducts = async (req, res) => {
+  try {
+    const {
+      id, name, description, weight,
+      price, price_lte, price_gte,
+      discountPrice, isInStock,
+      stockQuantity, stockQuantity_gte, stockQuantity_lte,
+      category,
+      createdAt_gte, createdAt_lte,
+      updatedAt_gte, updatedAt_lte,
+      page = 1,
+      limit = 6,
+      includeTotal = "false" // Optional param to include total count
+    } = req.query;
+
+    const whereClause = {};
+
+    if (id) whereClause.id = id;
+    if (name) whereClause.name = { [Op.like]: `%${name}%` };
+    if (description) whereClause.description = { [Op.like]: `%${description}%` };
+    if (weight) whereClause.weight = weight;
+
+    if (price_gte || price_lte) {
+      whereClause.price = {
+        ...(price_gte && { [Op.gte]: price_gte }),
+        ...(price_lte && { [Op.lte]: price_lte })
+      };
+    } else if (price) {
+      whereClause.price = price;
     }
+
+    if (discountPrice === "null") whereClause.discountPrice = null;
+    if (discountPrice === "notnull") whereClause.discountPrice = { [Op.not]: null };
+
+    if (typeof isInStock !== "undefined") {
+      whereClause.isInStock = isInStock === "true";
+    }
+
+    if (stockQuantity_gte || stockQuantity_lte) {
+      whereClause.stockQuantity = {
+        ...(stockQuantity_gte && { [Op.gte]: stockQuantity_gte }),
+        ...(stockQuantity_lte && { [Op.lte]: stockQuantity_lte })
+      };
+    } else if (stockQuantity) {
+      whereClause.stockQuantity = stockQuantity;
+    }
+
+    if (createdAt_gte || createdAt_lte) {
+      whereClause.createdAt = {
+        ...(createdAt_gte && { [Op.gte]: new Date(createdAt_gte) }),
+        ...(createdAt_lte && { [Op.lte]: new Date(createdAt_lte) })
+      };
+    }
+
+    if (updatedAt_gte || updatedAt_lte) {
+      whereClause.updatedAt = {
+        ...(updatedAt_gte && { [Op.gte]: new Date(updatedAt_gte) }),
+        ...(updatedAt_lte && { [Op.lte]: new Date(updatedAt_lte) })
+      };
+    }
+
+    if (category) {
+      const foundCategory = await Categories.findOne({
+        attributes: ['id'],
+        where: { name: category }
+      });
+      if (!foundCategory) {
+        return res.status(404).json({
+          status: 'fail',
+          message: 'Category not found!'
+        });
+      }
+      whereClause.categoryId = foundCategory.id;
+    }
+
+    const currentPage = parseInt(page);
+    const perPage = parseInt(limit);
+    const offset = (currentPage - 1) * perPage;
+
+    const queryOptions = {
+      where: whereClause,
+      limit: perPage,
+      offset
+    };
+
+    const includeTotalCount = includeTotal === "true";
+
+    let products, totalItems;
+
+    if (includeTotalCount) {
+      // This is expensive — only do it when explicitly requested
+      const result = await Product.findAndCountAll(queryOptions);
+      products = result.rows;
+      totalItems = result.count;
+    } else {
+      products = await Product.findAll(queryOptions);
+    }
+
+    const response = {
+      status: 'success',
+      data: {
+        products
+      },
+      pagination: {
+        currentPage,
+        perPage
+      }
+    };
+
+    if (includeTotalCount) {
+      const totalPages = Math.ceil(totalItems / perPage);
+      response.pagination.totalItems = totalItems;
+      response.pagination.totalPages = totalPages;
+    }
+
+    return res.status(200).json(response);
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: 'fail',
+      message: 'Something went wrong!'
+    });
+  }
 };
 
 
+//1. best selling before adding another model
+// const bestSelling = async (req, res) => {
+//   try {
+//     const bestSellingProducts = await Order.findAll({
+//       attributes: [
+//         'productId',
+//         [sequelize.fn('SUM', sequelize.col('productQuantity')), 'totalSold']
+//       ],
+//       include: [
+//         {
+//           model: Product,
+//           attributes: ['id', 'name', 'price', 'discountPrice', 'image'], // Select what you need
+//         }
+//       ],
+//       group: ['productId', 'Product.id'],
+//       order: [[sequelize.fn('SUM', sequelize.col('productQuantity')), 'DESC']],
+//       limit: 10,
+//     });
+
+//     res.status(200).json({
+//       status: 'success',
+//       data: bestSellingProducts,
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       status: 'fail',
+//       message: 'Something went wrong!',
+//     });
+//   }
+// };
+
+//2. best selling after adding another model
+// const bestSelling = async (req, res) => {
+//   try {
+//     const bestSellingProducts = await OrderItem.findAll({
+//       attributes: [
+//         'productId',
+//         [sequelize.fn('SUM', sequelize.col('productQuantity')), 'totalSold']
+//       ],
+//       include: [
+//         {
+//           model: Product,
+//           attributes: ['id', 'name', 'price', 'discountPrice', 'image'],
+//         }
+//       ],
+//       group: ['productId', 'product.id'],
+//       order: [[sequelize.literal('totalSold'), 'DESC']],
+//       limit: 10,
+//     });
+
+//     res.status(200).json({
+//       status: 'success',
+//       data: bestSellingProducts,
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       status: 'fail',
+//       message: 'Something went wrong while fetching best-selling products!',
+//     });
+//   }
+// };
+
+//3. best selling with filters and pagination
+
 const bestSelling = async (req, res) => {
   try {
-    const bestSellingProducts = await Order.findAll({
+    const {
+      id, name, description, weight,
+      price, price_lte, price_gte,
+      discountPrice, isInStock,
+      stockQuantity, stockQuantity_gte, stockQuantity_lte,
+      category,
+      createdAt_gte, createdAt_lte,
+      updatedAt_gte, updatedAt_lte,
+      page = 1,
+      limit = 6,
+      includeTotal = "false"
+    } = req.query;
+
+    const whereClause = {};
+
+    if (id) whereClause.id = id;
+    if (name) whereClause.name = { [Op.like]: `%${name}%` };
+    if (description) whereClause.description = { [Op.like]: `%${description}%` };
+    if (weight) whereClause.weight = weight;
+
+    if (price_gte || price_lte) {
+      whereClause.price = {
+        ...(price_gte && { [Op.gte]: price_gte }),
+        ...(price_lte && { [Op.lte]: price_lte })
+      };
+    } else if (price) {
+      whereClause.price = price;
+    }
+
+    if (discountPrice === "null") whereClause.discountPrice = null;
+    if (discountPrice === "notnull") whereClause.discountPrice = { [Op.not]: null };
+
+    if (typeof isInStock !== "undefined") {
+      whereClause.isInStock = isInStock === "true";
+    }
+
+    if (stockQuantity_gte || stockQuantity_lte) {
+      whereClause.stockQuantity = {
+        ...(stockQuantity_gte && { [Op.gte]: stockQuantity_gte }),
+        ...(stockQuantity_lte && { [Op.lte]: stockQuantity_lte })
+      };
+    } else if (stockQuantity) {
+      whereClause.stockQuantity = stockQuantity;
+    }
+
+    if (createdAt_gte || createdAt_lte) {
+      whereClause.createdAt = {
+        ...(createdAt_gte && { [Op.gte]: new Date(createdAt_gte) }),
+        ...(createdAt_lte && { [Op.lte]: new Date(createdAt_lte) })
+      };
+    }
+
+    if (updatedAt_gte || updatedAt_lte) {
+      whereClause.updatedAt = {
+        ...(updatedAt_gte && { [Op.gte]: new Date(updatedAt_gte) }),
+        ...(updatedAt_lte && { [Op.lte]: new Date(updatedAt_lte) })
+      };
+    }
+
+    if (category) {
+      const foundCategory = await Categories.findOne({
+        attributes: ['id'],
+        where: { name: category }
+      });
+      if (!foundCategory) {
+        return res.status(404).json({
+          status: 'fail',
+          message: 'Category not found!'
+        });
+      }
+      whereClause.categoryId = foundCategory.id;
+    }
+
+    //pagination formula
+    const currentPage = parseInt(page);
+    const perPage = parseInt(limit);
+    const offset = (currentPage - 1) * perPage;
+    const includeTotalCount = includeTotal === "true";
+
+    const bestSellingProducts = await OrderItem.findAll({
       attributes: [
         'productId',
-        [sequelize.fn('SUM', sequelize.col('productQuantity')), 'totalSold']
+        [fn('SUM',col('productQuantity')), 'totalSold']
+
       ],
       include: [
         {
           model: Product,
-          attributes: ['id', 'name', 'price', 'discountPrice', 'image'], // Select what you need
+          where: whereClause,
+          attributes: ['id', 'name', 'price', 'discountPrice', 'image'],
         }
       ],
       group: ['productId', 'Product.id'],
-      order: [[sequelize.fn('SUM', sequelize.col('productQuantity')), 'DESC']],
-      limit: 10,
+      order: [[literal('totalSold'), 'DESC']],
+      limit: perPage,
+      offset
     });
 
-    res.status(200).json({
+    let totalItems;
+    if (includeTotalCount) {
+      const countResult = await OrderItem.findAll({
+        attributes: [
+          'productId'
+        ],
+        include: [
+          {
+            model: Product,
+            where: whereClause,
+            attributes: []
+          }
+        ],
+        group: ['productId']
+      });
+      totalItems = countResult.length;
+    }
+
+    const response = {
       status: 'success',
       data: bestSellingProducts,
-    });
+      pagination: {
+        currentPage,
+        perPage
+      }
+    };
+
+    if (includeTotalCount) {
+      const totalPages = Math.ceil(totalItems / perPage);
+      response.pagination.totalItems = totalItems;
+      response.pagination.totalPages = totalPages;
+    }
+
+    return res.status(200).json(response);
 
   } catch (error) {
     console.error(error);
     res.status(500).json({
       status: 'fail',
-      message: 'Something went wrong!',
+      message: 'Something went wrong while fetching best-selling products!',
     });
   }
 };

@@ -3,45 +3,122 @@ const { Cart, Product } = require('../models');
 const { validateCoupon } = require("../utils/couponValidator");
 const e = require("express");
 console.log(`Hello Cart`)
+
+//1.
+// const getCart = async (req, res) => {
+//     try {
+//         const userId = req.user.id;
+
+//     //1. find the user's cart data
+//     console.log("cart association::",Cart.associations);
+//     console.log("product association::",Product.associations);
+
+
+//     const cartItems = await Cart.findAll({
+//     where: { userId },
+//     include: [{
+//         model: Product,
+//         as: 'product', // MUST match alias in association
+//         attributes: ['id', 'name', 'image', 'price', 'disCountPrice']
+//     }]
+// });
+
+//     if(!cartItems) {
+//         return res.status(200).json({
+//             status: 'success',
+//             message: "Cart is empty for this user!"
+//         })
+//     }
+
+//     res.status(200).json({
+//         status: 'success',
+//         data: {
+//             cartItems
+//         }
+//     })
+//     } catch (error) {
+//         console.log(error)
+//         return res.status(500).json({
+//             status: 'fail',
+//             message: 'Internal Server Error!'
+//         })
+//     }
+// }
+
+//2.
 const getCart = async (req, res) => {
-    try {
-        const userId = req.user.id;
-
-    //1. find the user's cart data
-    console.log("cart association::",Cart.associations);
-    console.log("product association::",Product.associations);
-
-
+  try {
+    const userId = req.user.id;
     const cartItems = await Cart.findAll({
-    where: { userId },
-    include: [{
-        model: Product,
-        as: 'product', // MUST match alias in association
-        attributes: ['id', 'name', 'image', 'price', 'disCountPrice']
-    }]
-});
+      where: { userId },
+      include: [
+        {
+          model: Product,
+          as: 'product',
+          attributes: ['name', 'image', 'weight', 'price', 'discountPrice']
+        }
+      ]
+    });
 
-    if(!cartItems) {
-        return res.status(200).json({
-            status: 'success',
-            message: "Cart is empty for this user!"
-        })
+    if (!cartItems || cartItems.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        message: "Cart is empty for this user!",
+        data: {
+          cartItems: [],
+          subtotal: 0,
+          discount: 0,
+          totalPayable: 0
+        }
+      });
     }
+
+    let subtotal = 0;
+    let totalDiscount = 0;
+
+    const formattedCartItems = cartItems.map(item => {
+      const { name, image, weight, price, discountPrice } = item.product;
+      const quantity = item.productQuantity;
+
+      const totalOriginalPrice = parseFloat(price) * quantity;
+      const totalDiscountedPrice = parseFloat(discountPrice) * quantity;
+      const itemDiscount = totalOriginalPrice - totalDiscountedPrice;
+
+      subtotal += totalDiscountedPrice;
+      totalDiscount += itemDiscount;
+
+      return {
+        productName: name,
+        productImage: image,
+        productWeight: weight,
+        productQuantity: quantity,
+        itemTotalPrice: totalDiscountedPrice.toFixed(2),
+        originalPricePerUnit: price,
+        discountPricePerUnit: discountPrice
+      };
+    });
+
+    const totalPayable = subtotal;
 
     res.status(200).json({
-        status: 'success',
-        data: {
-            cartItems
-        }
-    })
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            status: 'fail',
-            message: 'Internal Server Error!'
-        })
-    }
-}
+      status: 'success',
+      data: {
+        cartItems: formattedCartItems,
+        subtotal: subtotal.toFixed(2),
+        discount: totalDiscount.toFixed(2),
+        totalPayable: totalPayable.toFixed(2)
+      }
+    });
+
+  } catch (error) {
+    console.error('Cart Fetch Error:', error);
+    res.status(500).json({
+      status: 'fail',
+      message: 'Internal Server Error!'
+    });
+  }
+};
+
 
 //1. addToCart, discount is applied on each product
 
@@ -207,12 +284,104 @@ const getCart = async (req, res) => {
 
 
 //3. add to cart after updating discount percentage
+// const addToCart = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const { productId, quantity = 1 } = req.body;
+
+//     // 1. Check if product exists
+//     const product = await Product.findByPk(productId);
+//     if (!product) {
+//       return res.status(404).json({
+//         status: 'fail',
+//         message: 'Product not found!',
+//       });
+//     }
+
+//     if (!product.isInStock || product.stockQuantity < quantity) {
+//       return res.status(400).json({
+//         status: 'fail',
+//         message: `Only ${product.stockQuantity} item(s) in stock for product: ${product.name}`,
+//       });
+//     }
+
+//     // Use discountPrice for calculations (price after discount)
+//     const itemPrice = Number(product.discountPrice);
+
+//     // Calculate per unit discount amount (original price - discount price)
+//     const unitDiscount = Number(product.price) - itemPrice;
+
+//     // 2. Check if this product already exists in the user's cart
+//     let cartItem = await Cart.findOne({ where: { userId, productId } });
+
+//     if (cartItem) {
+//       const newTotalQty = cartItem.productQuantity + quantity;
+
+//       if (newTotalQty > product.stockQuantity) {
+//         return res.status(400).json({
+//           status: 'fail',
+//           message: `Only ${product.stockQuantity - cartItem.productQuantity} more item(s) can be added for product: ${product.name}`,
+//         });
+//       }
+
+//       cartItem.productQuantity = newTotalQty;
+//       cartItem.itemTotalPrice = itemPrice * newTotalQty; // total price after discount
+//       cartItem.discount = unitDiscount * newTotalQty; // total discount amount
+//       cartItem.subTotal = cartItem.itemTotalPrice; // total payable amount after discount
+//       await cartItem.save();
+//     } else {
+//       const itemTotalPrice = itemPrice * quantity; // total price after discount
+//       const discount = unitDiscount * quantity;    // total discount amount
+//       const subTotal = itemTotalPrice;             // total payable amount
+
+//       cartItem = await Cart.create({
+//         userId,
+//         productId,
+//         productQuantity: quantity,
+//         itemTotalPrice,
+//         discount,
+//         subTotal,
+//       });
+//     }
+
+//     // 🔁 Fetch all cart items to calculate total cart value
+//     const allCartItems = await Cart.findAll({ where: { userId } });
+
+//     let totalCartValue = 0;      // sum of itemTotalPrice (after discount)
+//     let totalCartDiscount = 0;   // sum of discount amounts
+//     // let totalCartSubTotal = 0; =/=   // sum of subTotals (should equal totalCartValue here)
+
+//     for (const item of allCartItems) {
+//       totalCartValue += Number(item.itemTotalPrice);
+//       totalCartDiscount += Number(item.discount);
+//       // totalCartSubTotal += Number(item.subTotal); =/=
+//     }
+
+//     return res.status(200).json({
+//       status: 'success',
+//       message: 'Product added to cart!',
+//       data: cartItem,
+//       // totalCartValue,
+//       // Subtotal: totalCartDiscount,
+//       // Total: totalCartSubTotal, =/=
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({
+//       status: 'fail',
+//       message: 'Something went wrong while adding product to cart!',
+//     });
+//   }
+// };
+
+//4. add to cart updated, after less fields in model, calculations are now done at runtime
 const addToCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const { productId, quantity = 1 } = req.body;
 
-    // 1. Check if product exists
+    // 1. Fetch product and validate
     const product = await Product.findByPk(productId);
     if (!product) {
       return res.status(404).json({
@@ -228,13 +397,7 @@ const addToCart = async (req, res) => {
       });
     }
 
-    // Use discountPrice for calculations (price after discount)
-    const itemPrice = Number(product.discountPrice);
-
-    // Calculate per unit discount amount (original price - discount price)
-    const unitDiscount = Number(product.price) - itemPrice;
-
-    // 2. Check if this product already exists in the user's cart
+    // 2. Check if product is already in cart
     let cartItem = await Cart.findOne({ where: { userId, productId } });
 
     if (cartItem) {
@@ -248,45 +411,54 @@ const addToCart = async (req, res) => {
       }
 
       cartItem.productQuantity = newTotalQty;
-      cartItem.itemTotalPrice = itemPrice * newTotalQty; // total price after discount
-      cartItem.discount = unitDiscount * newTotalQty; // total discount amount
-      cartItem.subTotal = cartItem.itemTotalPrice; // total payable amount after discount
       await cartItem.save();
     } else {
-      const itemTotalPrice = itemPrice * quantity; // total price after discount
-      const discount = unitDiscount * quantity;    // total discount amount
-      const subTotal = itemTotalPrice;             // total payable amount
-
       cartItem = await Cart.create({
         userId,
         productId,
         productQuantity: quantity,
-        itemTotalPrice,
-        discount,
-        subTotal,
       });
     }
 
-    // 🔁 Fetch all cart items to calculate total cart value
-    const allCartItems = await Cart.findAll({ where: { userId } });
+    // 3. Compute derived values at runtime
+    const itemPrice = Number(product.discountPrice);
+    const unitDiscount = Number(product.price) - itemPrice;
+    const itemTotalPrice = itemPrice * cartItem.productQuantity;
+    const discount = unitDiscount * cartItem.productQuantity;
+    const subTotal = itemTotalPrice;
 
-    let totalCartValue = 0;      // sum of itemTotalPrice (after discount)
-    let totalCartDiscount = 0;   // sum of discount amounts
-    let totalCartSubTotal = 0;   // sum of subTotals (should equal totalCartValue here)
+    // 4. Fetch all cart items to compute full cart summary
+    const allCartItems = await Cart.findAll({ where: { userId } });
+    let totalCartValue = 0;
+    let totalCartDiscount = 0;
 
     for (const item of allCartItems) {
-      totalCartValue += Number(item.itemTotalPrice);
-      totalCartDiscount += Number(item.discount);
-      totalCartSubTotal += Number(item.subTotal);
+      const prod = await Product.findByPk(item.productId);
+      if (!prod) continue;
+
+      const price = Number(prod.discountPrice);
+      const discountPerUnit = Number(prod.price) - price;
+      const quantity = item.productQuantity;
+
+      totalCartValue += price * quantity;
+      totalCartDiscount += discountPerUnit * quantity;
     }
 
     return res.status(200).json({
       status: 'success',
       message: 'Product added to cart!',
-      data: cartItem,
-      // totalCartValue,
-      // Subtotal: totalCartDiscount,
-      Total: totalCartSubTotal,
+      data: {
+        productId: cartItem.productId,
+        quantity: cartItem.productQuantity,
+        itemTotalPrice,
+        discount,
+        subTotal,
+      },
+      cartSummary: {
+        totalValue: totalCartValue,
+        totalDiscount: totalCartDiscount,
+        totalPayable: totalCartValue,
+      },
     });
 
   } catch (error) {
@@ -297,6 +469,7 @@ const addToCart = async (req, res) => {
     });
   }
 };
+
 
 
 

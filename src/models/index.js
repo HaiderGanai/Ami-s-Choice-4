@@ -9,6 +9,7 @@ const Order = require('./orderModel');
 const Review = require('./reviewModel');
 const Coupon = require('./couponModel');
 const CouponUsage = require('./couponUsageModel');
+const OrderItem = require('./orderProduct');
 
 
 module.exports = {
@@ -16,7 +17,7 @@ module.exports = {
   Category,
   Cart,
   Product,
-
+  OrderItem,
   Order,
   CouponUsage,
   Review,

@@ -12,7 +12,8 @@ const createCoupon = async (req, res) => {
                 message: 'Please Enter All fields!'
             });
         }
-        const codeExists = await Coupon.findOne({ where: { couponCode }});
+        let code = couponCode;
+        const codeExists = await Coupon.findOne({ where: { code }});
         if(codeExists) {
             return res.status(409).json({
                 status: 'fail',
@@ -41,6 +42,7 @@ const createCoupon = async (req, res) => {
             }
         });
     } catch (error) {
+      console.log(error)
         return res.status(500).json({
             status: 'fail',
             message: 'Internal Server Error!'
