@@ -474,15 +474,104 @@ const addToCart = async (req, res) => {
 
 
 
+//1. with all the fields
+// const updateCart = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const { productId } = req.params;
+//     const { action, newQuantity } = req.body;
 
+//     const cartItem = await Cart.findOne({ where: { userId, productId } });
+
+//     if (!cartItem) {
+//       return res.status(404).json({
+//         status: 'fail',
+//         message: 'Product not found in cart',
+//       });
+//     }
+
+//     const product = await Product.findByPk(productId);
+//     if (!product) {
+//       return res.status(404).json({
+//         status: 'fail',
+//         message: 'Product not found',
+//       });
+//     }
+
+//     let updatedQuantity = cartItem.productQuantity;
+
+//     // Handle action or direct quantity update
+//     if (newQuantity !== undefined) {
+//       updatedQuantity = Number(newQuantity);
+//     } else if (action === 'increase') {
+//       updatedQuantity += 1;
+//     } else if (action === 'decrease') {
+//       updatedQuantity -= 1;
+//     } else {
+//       return res.status(400).json({
+//         status: 'fail',
+//         message: 'Invalid action or newQuantity not provided',
+//       });
+//     }
+
+//     // Remove from cart if quantity becomes 0 or less
+//     if (updatedQuantity <= 0) {
+//       await cartItem.destroy();
+//       return res.status(200).json({
+//         status: 'success',
+//         message: 'Product removed from cart',
+//       });
+//     }
+
+//     // Check if enough stock is available
+//     if (updatedQuantity > product.stockQuantity) {
+//       return res.status(400).json({
+//         status: 'fail',
+//         message: `Only ${product.stockQuantity} item(s) in stock for product: ${product.name}`,
+//       });
+//     }
+
+//     const unitPrice = Number(product.discountPrice); // Final price to user
+//     const originalPrice = Number(product.price);
+//     const unitDiscount = originalPrice - unitPrice;
+
+//     // Cart item calculations based on discounted price
+//     const itemTotalPrice = unitPrice * updatedQuantity;
+//     const discount = unitDiscount * updatedQuantity;
+//     const subTotal = itemTotalPrice; // Final amount user pays
+
+//     // Update the cart item
+//     cartItem.productQuantity = updatedQuantity;
+//     cartItem.itemTotalPrice = itemTotalPrice;
+//     cartItem.discount = discount;
+//     cartItem.subTotal = subTotal;
+
+//     await cartItem.save();
+
+//     return res.status(200).json({
+//       status: 'success',
+//       message: 'Cart item updated successfully',
+//       data: cartItem,
+//     });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({
+//       status: 'fail',
+//       message: 'Something went wrong while updating cart item',
+//     });
+//   }
+// };
+
+//2. Updated-without all fields
 const updateCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const { productId } = req.params;
     const { action, newQuantity } = req.body;
 
+    // 1. Check if item exists in cart
     const cartItem = await Cart.findOne({ where: { userId, productId } });
-
     if (!cartItem) {
       return res.status(404).json({
         status: 'fail',
@@ -490,6 +579,7 @@ const updateCart = async (req, res) => {
       });
     }
 
+    // 2. Check if product still exists
     const product = await Product.findByPk(productId);
     if (!product) {
       return res.status(404).json({
@@ -498,9 +588,8 @@ const updateCart = async (req, res) => {
       });
     }
 
+    // 3. Determine updated quantity
     let updatedQuantity = cartItem.productQuantity;
-
-    // Handle action or direct quantity update
     if (newQuantity !== undefined) {
       updatedQuantity = Number(newQuantity);
     } else if (action === 'increase') {
@@ -514,7 +603,7 @@ const updateCart = async (req, res) => {
       });
     }
 
-    // Remove from cart if quantity becomes 0 or less
+    // 4. Remove if quantity is zero or less
     if (updatedQuantity <= 0) {
       await cartItem.destroy();
       return res.status(200).json({
@@ -523,7 +612,7 @@ const updateCart = async (req, res) => {
       });
     }
 
-    // Check if enough stock is available
+    // 5. Validate against available stock
     if (updatedQuantity > product.stockQuantity) {
       return res.status(400).json({
         status: 'fail',
@@ -531,27 +620,27 @@ const updateCart = async (req, res) => {
       });
     }
 
-    const unitPrice = Number(product.discountPrice); // Final price to user
-    const originalPrice = Number(product.price);
-    const unitDiscount = originalPrice - unitPrice;
+    // 6. Update cart item with new quantity only
+    cartItem.productQuantity = updatedQuantity;
+    await cartItem.save();
 
-    // Cart item calculations based on discounted price
+    // 7. Runtime calculations (not stored in DB)
+    const unitPrice = Number(product.discountPrice);
+    const unitDiscount = Number(product.price) - unitPrice;
     const itemTotalPrice = unitPrice * updatedQuantity;
     const discount = unitDiscount * updatedQuantity;
-    const subTotal = itemTotalPrice; // Final amount user pays
-
-    // Update the cart item
-    cartItem.productQuantity = updatedQuantity;
-    cartItem.itemTotalPrice = itemTotalPrice;
-    cartItem.discount = discount;
-    cartItem.subTotal = subTotal;
-
-    await cartItem.save();
+    const subTotal = itemTotalPrice;
 
     return res.status(200).json({
       status: 'success',
       message: 'Cart item updated successfully',
-      data: cartItem,
+      data: {
+        productId: cartItem.productId,
+        quantity: updatedQuantity,
+        itemTotalPrice,
+        discount,
+        subTotal
+      },
     });
 
   } catch (error) {
