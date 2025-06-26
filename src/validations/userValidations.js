@@ -12,7 +12,7 @@ const registerSchema = Joi.object({
       'string.pattern.base': 'Phone number must be 10 to 15 digits',
       'any.required': 'Phone number is required'
     }),
-  address: Joi.string().required(),
+  address: Joi.string(),
   profilePic: Joi.string().uri().messages(),
   role: Joi.string().valid('user', 'admin')
 });
