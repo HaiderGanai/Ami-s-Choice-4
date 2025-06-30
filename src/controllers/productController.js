@@ -787,7 +787,8 @@ const bestSelling = async (req, res) => {
           attributes: ['id', 'name', 'price', 'discountPrice', 'image'],
         }
       ],
-      group: ['productId', 'Product.id'],
+      group: ['productId', 'product.id'],
+
       order: [[literal('totalSold'), 'DESC']],
       limit: perPage,
       offset
