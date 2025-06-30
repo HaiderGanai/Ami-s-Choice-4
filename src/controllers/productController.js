@@ -5,63 +5,183 @@ const { sequelize } = require("../config/dbConnect");
 const { Col, Literal } = require("sequelize/lib/utils");
 
 
+//1. storing image in local on server
+// const addProduct = async (req, res) => {
+//     try {
+//         const { name, description, image, weight, price, stockQuantity, categoryId, productDiscount } = req.body;
 
+//         if (
+//     name === undefined || name === '' ||
+//     description === undefined || description === '' ||
+//     weight === undefined || weight === '' ||
+//     price === undefined || price === '' ||
+//     stockQuantity === undefined || stockQuantity === '' ||
+//     categoryId === undefined || categoryId === ''
+// ) {
+//     return res.status(400).json({
+//         status: 'fail',
+//         message: 'Please enter all required fields!'
+//     });
+// }
+
+//         const category = await Categories.findByPk(categoryId);
+//         if (!category) {
+//             return res.status(404).json({
+//                 status: 'fail',
+//                 message: 'This category does not exist!'
+//             });
+//         }
+
+//         // 💡 Grab file path from multer
+//     const imagePath = req.file ? `/uploads/products/${req.file.filename}` : null;
+
+//         const newProduct = await Product.create({
+//             name,
+//             description,
+//             image: imagePath,
+//             weight,
+//             price,
+//             productDiscount: productDiscount || 0,
+//             stockQuantity,
+//             isInStock: stockQuantity > 0,
+//             categoryId
+//         });
+
+//         return res.status(200).json({
+//             status: 'success',
+//             data: {
+//                 newProduct
+//             }
+//         });
+//     } catch (error) {
+//         console.log("error",error)
+//         return res.status(500).json({
+//             status: 'fail',
+//             message: 'Something went wrong!',
+//             error: error.message
+//         });
+//     }
+// };
+
+//2. Storing image on cloudinary with path only
+// const cloudinary = require('../config/cloudinary');
+
+// const addProduct = async (req, res) => {
+//   try {
+//     const { name, description, weight, price, stockQuantity, categoryId, productDiscount } = req.body;
+
+//     if (!name || !description || !weight || !price || !stockQuantity || !categoryId) {
+//       return res.status(400).json({
+//         status: 'fail',
+//         message: 'Please enter all required fields!'
+//       });
+//     }
+
+//     const category = await Categories.findByPk(categoryId);
+//     if (!category) {
+//       return res.status(404).json({
+//         status: 'fail',
+//         message: 'This category does not exist!'
+//       });
+//     }
+
+//     let imagePath = null;
+//     if (req.file) {
+//       const result = await cloudinary.cloudinary_js_config.uploader.upload(req.file.path, {
+//         folder: 'amichoice/products'
+//       });
+//       imagePath = result.secure_url;
+//     }
+
+//     const newProduct = await Product.create({
+//       name,
+//       description,
+//       image: imagePath,
+//       weight,
+//       price,
+//       productDiscount: productDiscount || 0,
+//       stockQuantity,
+//       isInStock: stockQuantity > 0,
+//       categoryId
+//     });
+
+//     return res.status(200).json({
+//       status: 'success',
+//       data: {
+//         newProduct
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("error", error);
+//     return res.status(500).json({
+//       status: 'fail',
+//       message: 'Something went wrong!',
+//       error: error.message
+//     });
+//   }
+// };
+
+//3. storing image on cloudinary with complete access url
 const addProduct = async (req, res) => {
-    try {
-        const { name, description, image, weight, price, stockQuantity, categoryId, productDiscount } = req.body;
+  try {
+    const { name, description, weight, price, stockQuantity, categoryId, productDiscount } = req.body;
 
-        if (
-    name === undefined || name === '' ||
-    description === undefined || description === '' ||
-    weight === undefined || weight === '' ||
-    price === undefined || price === '' ||
-    stockQuantity === undefined || stockQuantity === '' ||
-    categoryId === undefined || categoryId === ''
-) {
-    return res.status(400).json({
+    // Basic validation
+    if (
+      !name || !description || !weight || !price || !stockQuantity || !categoryId
+    ) {
+      return res.status(400).json({
         status: 'fail',
         message: 'Please enter all required fields!'
-    });
-}
-
-        const category = await Categories.findByPk(categoryId);
-        if (!category) {
-            return res.status(404).json({
-                status: 'fail',
-                message: 'This category does not exist!'
-            });
-        }
-
-        // 💡 Grab file path from multer
-    const imagePath = req.file ? `/uploads/products/${req.file.filename}` : null;
-
-        const newProduct = await Product.create({
-            name,
-            description,
-            image: imagePath,
-            weight,
-            price,
-            productDiscount: productDiscount || 0,
-            stockQuantity,
-            isInStock: stockQuantity > 0,
-            categoryId
-        });
-
-        return res.status(200).json({
-            status: 'success',
-            data: {
-                newProduct
-            }
-        });
-    } catch (error) {
-        console.log("error",error)
-        return res.status(500).json({
-            status: 'fail',
-            message: 'Something went wrong!',
-            error: error.message
-        });
+      });
     }
+
+    // Check category
+    const category = await Categories.findByPk(categoryId);
+    if (!category) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'This category does not exist!'
+      });
+    }
+
+    // Get Cloudinary full URL from req.file
+    const imagePath = req.file?.path || null;
+
+    const newProduct = await Product.create({
+      name,
+      description,
+      image: imagePath, // ✅ Cloudinary secure URL
+      weight,
+      price,
+      productDiscount: productDiscount || 0,
+      stockQuantity,
+      isInStock: stockQuantity > 0,
+      categoryId
+    });
+
+    console.log("Uploaded file info:", req.file);
+
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Product added successfully!',
+      data: {
+        product: newProduct
+      }
+    });
+  } catch (error) {
+    console.log("error", error);
+    return res.status(500).json({
+      status: 'fail',
+      message: 'Something went wrong!',
+      error: error.message
+    });
+  }
 };
+
+
 
 //Bulk addition of products
 const addProducts = async (req, res) => {
@@ -773,9 +893,9 @@ const updateProduct = async (req, res) => {
     // Prepare updated fields
     const updateData = { ...req.body };
 
-    // If an image is uploaded, add it to updateData
-    if (req.file) {
-      updateData.image = `/uploads/products/${req.file.filename}`;
+    // If an image is uploaded to Cloudinary, use its full URL
+    if (req.file && req.file.path) {
+      updateData.image = req.file.path; // Cloudinary full URL
     }
 
     // Update the product
@@ -789,13 +909,15 @@ const updateProduct = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Update Product Error:", error);
     return res.status(500).json({
       status: 'fail',
       message: 'Something went wrong!',
+      error: error.message
     });
   }
 };
+
 
 
 //2. Controller without file uppload logic

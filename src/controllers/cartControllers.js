@@ -381,8 +381,12 @@ const addToCart = async (req, res) => {
     const userId = req.user.id;
     const { productId, quantity = 1 } = req.body;
 
+    console.log("Looking for product ID:", productId);
+
+
     // 1. Fetch product and validate
     const product = await Product.findByPk(productId);
+    console.log("Product found::",product)
     if (!product) {
       return res.status(404).json({
         status: 'fail',

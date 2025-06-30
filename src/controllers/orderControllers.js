@@ -408,20 +408,193 @@ const { checkoutSchema } = require("../validations/checkoutValidations");
 // };
 
 //4. checkout model after adding a junction table
+// const checkOut = async (req, res) => {
+//   const { id: userId, email } = req.user;
+
+
+//   // Validate Input
+//   const { error } = checkoutSchema.validate(req.body);
+// if (error) {
+//   return res.status(400).json({
+//     status: 'fail',
+//     message: error.details[0].message
+//   });
+// }
+
+//   const { firstName, lastName, /*email,*/ phone, notes, couponCode, deliveryAddress, deliveryFee = 0 } = req.body;
+
+//   const t = await sequelize.transaction();
+
+//   try {
+//     let couponDiscountPercent = 0;
+//     let couponDiscountAmount = 0;
+
+//     // 1. Validate coupon (if any)
+//     let usedCoupon = null;
+//     if (couponCode) {
+//       const { valid, message, coupon } = await validateCoupon(couponCode, userId);
+//       if (!valid) {
+//         await t.rollback();
+//         return res.status(400).json({ status: 'fail', message });
+//       }
+
+//       couponDiscountPercent = Number(coupon.discountAmount);
+//       usedCoupon = coupon;
+
+//       await CouponUsage.create({ couponId: coupon.id, userId }, { transaction: t });
+//     }
+
+//     // 2. Get cart items
+//     const cartItems = await Cart.findAll({
+//       where: { userId },
+//       include: [{ model: Product, as: "product" }],
+//       transaction: t,
+//       lock: true
+//     });
+
+//     if (!cartItems.length) {
+//       await t.rollback();
+//       return res.status(400).json({
+//         status: "fail",
+//         message: "Your Cart is empty!",
+//       });
+//     }
+
+//     let subtotal = 0;
+//     let totalProductDiscount = 0;
+
+//     const orderItems = [];
+
+//     // 3. Process cart items and stock updates
+//     for (const item of cartItems) {
+//       const product = item.product;
+//       const quantity = item.productQuantity;
+
+//       if (product.stockQuantity < quantity) {
+//         await t.rollback();
+//         return res.status(400).json({
+//           status: "fail",
+//           message: `Insufficient stock for product: ${product.name}`,
+//         });
+//       }
+
+//       const itemTotal = Number(item.itemTotalPrice);
+//       const discount = Number(item.discount || 0);
+
+//       subtotal += itemTotal;
+//       totalProductDiscount += discount;
+
+//       orderItems.push({
+//         productId: product.id,
+//         productQuantity: quantity,
+//         itemTotalPrice: itemTotal,
+//         discount,
+//       });
+
+//       // Update stock
+//       const newStock = product.stockQuantity - quantity;
+//       await product.update({
+//         stockQuantity: newStock,
+//         isInStock: newStock > 0
+//       }, { transaction: t });
+//     }
+
+//     // 4. Calculate coupon discount
+//     if (couponDiscountPercent > 0) {
+//       couponDiscountAmount = (subtotal * couponDiscountPercent) / 100;
+//     }
+
+//     const totalPayable = subtotal - couponDiscountAmount + Number(deliveryFee);
+
+//     // 5. Create order (single entry)
+// // const orderNumber = Math.floor(10000 + Math.random() * 90000);  
+//   const orderNumber = uuidv4(); // ✅ Generates a unique UUID like '550e8400-e29b-41d4-a716-446655440000'
+
+
+// const createdOrder = await Order.create({
+//   userId,
+//   firstName,
+//   lastName,
+//   email: email,
+//   notes,
+//   deliveryAddress,
+//   phone,
+//   subTotal: subtotal,
+//   deliveryFee,
+//   couponDiscount: couponDiscountAmount,
+//   discount: totalProductDiscount,
+//   total: totalPayable,
+//   orderNumber,                      // ✅ Include orderNumber
+//   totalAmount: totalPayable,        // ✅ Include totalAmount if required by schema
+//   status: "pending",
+// }, { transaction: t });
+
+//     // 6. Create order items
+//     for (const item of orderItems) {
+//       await OrderItem.create({
+//         orderId: createdOrder.id,
+//         productId: item.productId,
+//         productQuantity: item.productQuantity,
+//         itemTotalPrice: item.itemTotalPrice,
+//         discount: item.discount,
+//       }, { transaction: t });
+//     }
+
+//     // 7. Clear cart
+//     await Cart.destroy({ where: { userId }, transaction: t });
+
+//     // 8. Commit
+//     await t.commit();
+
+//     // 9. Response
+//     return res.status(201).json({
+//       status: "success",
+//       message: "Order placed successfully!",
+//       data: {
+//         order: createdOrder,
+//         products: orderItems,
+//         Subtotal: subtotal,
+//         deliveryFee: Number(deliveryFee),
+//         ProductLevelDiscount: totalProductDiscount,
+//         CouponDiscount: couponDiscountAmount,
+//         TotalPayable: totalPayable
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("Checkout Error:", error);
+//     await t.rollback();
+//     return res.status(500).json({
+//       status: 'fail',
+//       message: 'Something went wrong during checkout!',
+//     });
+//   }
+// };
+
+//5. checkout controller after the updated less fields in cart model
+
+
 const checkOut = async (req, res) => {
   const { id: userId, email } = req.user;
 
-
-  // Validate Input
+  // Validate input
   const { error } = checkoutSchema.validate(req.body);
-if (error) {
-  return res.status(400).json({
-    status: 'fail',
-    message: error.details[0].message
-  });
-}
+  if (error) {
+    return res.status(400).json({
+      status: 'fail',
+      message: error.details[0].message
+    });
+  }
 
-  const { firstName, lastName, /*email,*/ phone, notes, couponCode, deliveryAddress, deliveryFee = 0 } = req.body;
+  const {
+    firstName,
+    lastName,
+    phone,
+    notes,
+    couponCode,
+    deliveryAddress,
+    deliveryFee = 0
+  } = req.body;
 
   const t = await sequelize.transaction();
 
@@ -463,9 +636,10 @@ if (error) {
     let subtotal = 0;
     let totalProductDiscount = 0;
 
+
     const orderItems = [];
 
-    // 3. Process cart items and stock updates
+    // 3. Process cart items and update stock
     for (const item of cartItems) {
       const product = item.product;
       const quantity = item.productQuantity;
@@ -478,20 +652,24 @@ if (error) {
         });
       }
 
-      const itemTotal = Number(item.itemTotalPrice);
-      const discount = Number(item.discount || 0);
+      const price = Number(product.discountPrice);
+      const regularPrice = Number(product.price);
+      const discountPerUnit = regularPrice - price;
 
-      subtotal += itemTotal;
+      const itemTotalPrice = price * quantity;
+      const discount = discountPerUnit * quantity;
+
+      subtotal += itemTotalPrice;
       totalProductDiscount += discount;
 
       orderItems.push({
         productId: product.id,
         productQuantity: quantity,
-        itemTotalPrice: itemTotal,
-        discount,
+        itemTotalPrice,
+        discount
       });
 
-      // Update stock
+      // Update product stock
       const newStock = product.stockQuantity - quantity;
       await product.update({
         stockQuantity: newStock,
@@ -504,41 +682,42 @@ if (error) {
       couponDiscountAmount = (subtotal * couponDiscountPercent) / 100;
     }
 
-    const totalPayable = subtotal - couponDiscountAmount + Number(deliveryFee);
+    const totalPayable = Number((subtotal - couponDiscountAmount + Number(deliveryFee)).toFixed(2));
 
-    // 5. Create order (single entry)
-// const orderNumber = Math.floor(10000 + Math.random() * 90000);  
-  const orderNumber = uuidv4(); // ✅ Generates a unique UUID like '550e8400-e29b-41d4-a716-446655440000'
+    // 5. Create order
+    const orderNumber = uuidv4();
 
-
-const createdOrder = await Order.create({
+    const createdOrder = await Order.create({
   userId,
   firstName,
   lastName,
-  email: email,
+  email,
   notes,
   deliveryAddress,
   phone,
-  subTotal: subtotal,
-  deliveryFee,
-  couponDiscount: couponDiscountAmount,
-  discount: totalProductDiscount,
-  total: totalPayable,
-  orderNumber,                      // ✅ Include orderNumber
-  totalAmount: totalPayable,        // ✅ Include totalAmount if required by schema
+  subTotal: parseFloat(subtotal),
+  deliveryFee: parseFloat(deliveryFee),
+  couponDiscount: parseFloat(couponDiscountAmount),
+  discount: parseFloat(totalProductDiscount),
+  total: parseFloat(totalPayable),
+  orderNumber,
+  totalAmount: parseFloat(totalPayable),
   status: "pending",
 }, { transaction: t });
 
+
     // 6. Create order items
     for (const item of orderItems) {
-      await OrderItem.create({
-        orderId: createdOrder.id,
-        productId: item.productId,
-        productQuantity: item.productQuantity,
-        itemTotalPrice: item.itemTotalPrice,
-        discount: item.discount,
-      }, { transaction: t });
-    }
+  await OrderItem.create({
+    orderId: createdOrder.id,
+    productId: item.productId,
+    productQuantity: item.productQuantity,
+    itemTotalPrice: parseFloat(item.itemTotalPrice),
+    discount: parseFloat(item.discount),
+  }, { transaction: t });
+}
+
+
 
     // 7. Clear cart
     await Cart.destroy({ where: { userId }, transaction: t });
@@ -570,6 +749,7 @@ const createdOrder = await Order.create({
     });
   }
 };
+
 
 const orderHistory = async (req, res) => {
   try {
