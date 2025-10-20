@@ -9,7 +9,7 @@ const { userRouter } = require("./userRoutes");
 
 
 const loadRoutes = (app) => {
-    app.use('/api/v1/users', authRouter);
+    app.use('/api/v1/auth', authRouter);
     app.use('/api/v1', categoryRouter);
     app.use('/api/v1',productRouter);
     app.use('/api/v1/users',userRouter);
