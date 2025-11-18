@@ -1,146 +1,135 @@
-<<<<<<< HEAD
 const { Review, User } = require("../models");
-=======
-const { Review } = require("../models");
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
 
-
-
+// Add a new review
 const addReview = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { productId } = req.params;
-        const { rating, comment } = req.body;
+  try {
+    const userId = req.user.id;
+    const { productId } = req.params;
+    const { rating, comment } = req.body;
 
-        //1. Validating Input
-        console.log("rating::", rating) 
-        // console.log("rating type::", typeof(rating)) 
-        if(!rating || rating < 1 || rating > 5) {
-            return res.status(400).json({
-                status: 'fail',
-                message: 'Rating must be between 1 to 5'
-            })
-        }
-
-        if(!comment || comment.trim() === '') {
-            return res.status(400).json({
-                status: 'fail',
-                message: 'Comment cannot be empty'
-            })
-        }
-        
-        //2. Check if profuct exists or not (Optional)
-
-        //3. Check if user has already reviewed this product, one user can do only one comment (Optional)
-
-        //4. create review 
-        const review = await Review.create({
-            userId,
-            productId,
-            rating,
-            comment
-        });
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Review added successfully!',
-            data: {
-                review
-            }
-        })
-        
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            status: 'fail',
-            message: 'Internal Server Error!'
-        })
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Rating must be between 1 and 5',
+      });
     }
-}
 
+    // Validate comment
+    if (!comment || comment.trim() === '') {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Comment cannot be empty',
+      });
+    }
+
+    // Optional: Check if user has already reviewed this product
+    // const existingReview = await Review.findOne({ where: { userId, productId } });
+    // if (existingReview) { ... }
+
+    // Create review
+    const review = await Review.create({
+      userId,
+      productId,
+      rating,
+      comment
+    });
+
+    return res.status(201).json({
+      status: 'success',
+      message: 'Review added successfully!',
+      data: review
+    });
+
+  } catch (error) {
+    console.error("AddReview Error:", error);
+    return res.status(500).json({
+      status: 'fail',
+      message: 'Internal Server Error!'
+    });
+  }
+};
+
+// Get all reviews for a product
 const allReviews = async (req, res) => {
-    try {
-        const {productId} = req.params;
-        const reviews = await Review.findAll({ where: { productId }});
+  try {
+    const { productId } = req.params;
 
-        if(!reviews) {
-            return res.status(200).json({
-                staus: 'success',
-                message: 'data fetched!',
-                data: {
-                    reviews
-                }
-            })
-        }
-<<<<<<< HEAD
+    const reviews = await Review.findAll({
+      where: { productId },
+      include: [{
+        model: User,
+        as: 'user', // Make sure this matches your Review->User association alias
+        attributes: ['firstName', 'lastName']
+      }]
+    });
 
-        //extracting the user id
-        const userId = reviews[0].dataValues.userId;
-        //extracting the user
-        const user = await User.findByPk(userId);
-        if(!user) {
-            return res.staus('User not found!')
-        }
-=======
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
-        res.status(200).json({
-                staus: 'success',
-                message: 'data fetched!',
-                data: {
-<<<<<<< HEAD
-                    reviews,
-                    userName: user.firstName+ " "+ user.lastName
-=======
-                    reviews
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
-                }
-            })
-
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            status: 'fail',
-            message: 'Internal Server Error!'
-        })
+    if (!reviews || reviews.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'No reviews found for this product',
+        data: []
+      });
     }
-}
 
+    const formattedReviews = reviews.map(r => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      userName: r.user ? `${r.user.firstName} ${r.user.lastName}` : 'Unknown'
+    }));
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Reviews fetched successfully!',
+      data: formattedReviews
+    });
+
+  } catch (error) {
+    console.error("AllReviews Error:", error);
+    return res.status(500).json({
+      status: 'fail',
+      message: 'Internal Server Error!'
+    });
+  }
+};
+
+// Delete a review
 const deleteReview = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { reviewId } = req.params;
-        
-        //1. Check if review exists or not
-        const review = await Review.findByPk(reviewId);
-        if(!review) {
-            return res.status(404).json({
-                status: 'fail',
-                message: 'Review not found!'
-            });
-        }
+  try {
+    const userId = req.user.id;
+    const { reviewId } = req.params;
 
-        //2. Check ownership of review
-        if(review.userId !== userId) {
-            return res.status(403).json({
-                status: 'fail',
-                message: 'You can only delete your own review!'
-            })
-        }
-
-        //3. Delete the review
-        await review.destroy();
-
-        return res.status(200).json({
-            status: 'success',
-            message: 'Review Delete Successfully!'
-        })
-    } catch (error) {
-        console.log("error::", error)
-        return res.status(500).json({
-            status: 'fail',
-            message: 'Internal Server Error!'
-        })
+    const review = await Review.findByPk(reviewId);
+    if (!review) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'Review not found!'
+      });
     }
-}
+
+    // Check ownership
+    if (review.userId !== userId) {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'You can only delete your own review!'
+      });
+    }
+
+    await review.destroy();
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Review deleted successfully!'
+    });
+
+  } catch (error) {
+    console.error("DeleteReview Error:", error);
+    return res.status(500).json({
+      status: 'fail',
+      message: 'Internal Server Error!'
+    });
+  }
+};
 
 module.exports = { addReview, allReviews, deleteReview };
