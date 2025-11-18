@@ -48,7 +48,10 @@ console.log(`Hello Cart`)
 //2.
 const getCart = async (req, res) => {
   try {
+<<<<<<< HEAD
     console.log("the controll came inside getcart")
+=======
+>>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
     const userId = req.user.id;
     const cartItems = await Cart.findAll({
       where: { userId },
@@ -56,7 +59,11 @@ const getCart = async (req, res) => {
         {
           model: Product,
           as: 'product',
+<<<<<<< HEAD
           attributes: ['id', 'name', 'image', 'weight', 'price', 'discountPrice']
+=======
+          attributes: ['name', 'image', 'weight', 'price', 'discountPrice']
+>>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
         }
       ]
     });
@@ -78,7 +85,11 @@ const getCart = async (req, res) => {
     let totalDiscount = 0;
 
     const formattedCartItems = cartItems.map(item => {
+<<<<<<< HEAD
       const { id: productId, name, image, weight, price, discountPrice } = item.product;
+=======
+      const { name, image, weight, price, discountPrice } = item.product;
+>>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
       const quantity = item.productQuantity;
 
       const totalOriginalPrice = parseFloat(price) * quantity;
@@ -88,12 +99,16 @@ const getCart = async (req, res) => {
       subtotal += totalDiscountedPrice;
       totalDiscount += itemDiscount;
 
+<<<<<<< HEAD
       console.log("item.id::", item.id)
       console.log("name::", name)
 
       return {
         id: item.id, // <-- Add cart item ID here
         productId: productId,
+=======
+      return {
+>>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
         productName: name,
         productImage: image,
         productWeight: weight,
@@ -126,7 +141,10 @@ const getCart = async (req, res) => {
 };
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
 //1. addToCart, discount is applied on each product
 
 // const addToCart = async (req, res) => {

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 const { Review, User } = require("../models");
+=======
+const { Review } = require("../models");
+>>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
 
 
 
@@ -68,6 +72,7 @@ const allReviews = async (req, res) => {
                 }
             })
         }
+<<<<<<< HEAD
 
         //extracting the user id
         const userId = reviews[0].dataValues.userId;
@@ -76,12 +81,18 @@ const allReviews = async (req, res) => {
         if(!user) {
             return res.staus('User not found!')
         }
+=======
+>>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
         res.status(200).json({
                 staus: 'success',
                 message: 'data fetched!',
                 data: {
+<<<<<<< HEAD
                     reviews,
                     userName: user.firstName+ " "+ user.lastName
+=======
+                    reviews
+>>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
                 }
             })
 
