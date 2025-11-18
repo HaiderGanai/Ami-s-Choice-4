@@ -1,32 +1,32 @@
-const nodemailer = require('nodemailer');
+// sendEmail.js
+const sgMail = require('@sendgrid/mail');
 
-const sendEmail = async (options) => {
-  // 1. Create a transporter
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    },
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000
-  });
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-  // 2. Define email options
-  const mailOptions = {
-    from: `Haider Ali <${process.env.EMAIL_USER}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.text || 'Please view this email in HTML format.',
-    html: options.html
+const sendEmail = async (recipient, code) => {
+  const msg = {
+    to: recipient,
+    from: process.env.SENDGRID_SENDER, // verified sender
+    subject: 'Your Password Reset Code',
+    text: `Your OTP Code is: ${code}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Password Reset Code</h2>
+        <p>Your 4-digit password reset code is:</p>
+        <h1 style="letter-spacing: 2px;">${code}</h1>
+        <p>This code is valid for <strong>10 minutes</strong>.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      </div>
+    `,
   };
 
-  // 3. Send the email
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('Email sent to:', options.email);
-  } catch (err) {
-    console.error('Failed to send email:', err);
+    const [response] = await sgMail.send(msg);
+    console.log('Email sent status:', response.statusCode);
+    return true;
+  } catch (error) {
+    console.error('SendGrid Error:', error);
+    return false;
   }
 };
 
