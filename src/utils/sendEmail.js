@@ -23,7 +23,7 @@ const sendEmail = async (recipient, code) => {
   try {
     const [response] = await sgMail.send(msg);
     console.log('Email sent status:', response.statusCode);
-    console.log("api key::", process.env.SENDGRID_SENDER)
+
     return true;
   } catch (error) {
     console.error('SendGrid Error:', error);

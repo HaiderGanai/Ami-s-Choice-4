@@ -13,7 +13,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+<<<<<<< HEAD
     "@sendgrid/mail": "^8.1.6",
+=======
+>>>>>>> 22ea5a6ffab49367aeb6dd4688a5edbb6565ee03
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "cors": "^2.8.5",
