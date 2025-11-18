@@ -212,8 +212,6 @@ const login = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
   try {
-    console.log("Entered forgot password endpoint");
-
     const { email } = req.body;
 
     if (!email) {
@@ -224,8 +222,6 @@ const forgotPassword = async (req, res) => {
     }
 
     const user = await User.findOne({ where: { email } });
-    console.log("User found:", user ? user.email : null);
-
     if (!user) {
       return res.status(404).json({
         status: 'fail',
@@ -239,27 +235,19 @@ const forgotPassword = async (req, res) => {
     // Hash the code
     const hashedToken = crypto.createHash('sha256').update(resetCode).digest('hex');
 
-    // Set reset fields
+    // Save reset token and expiry
     user.passwordResetToken = hashedToken;
     user.passwordResetExpiry = Date.now() + 10 * 60 * 1000; // 10 mins
     await user.save();
 
-    // HTML email body
-    const html = `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Password Reset Code</h2>
-        <p>Your 4-digit password reset code is:</p>
-        <h1 style="letter-spacing: 2px;">${resetCode}</h1>
-        <p>This code is valid for <strong>10 minutes</strong>.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      </div>
-    `;
-
-    await sendEmail({
-      email: user.email,
-      subject: 'Your password reset code (valid for 10 minutes)',
-      html
-    });
+    // Send email via SendGrid
+    const emailSent = await sendEmail(user.email, resetCode);
+    if (!emailSent) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Failed to send reset email. Try again later.',
+      });
+    }
 
     if (process.env.NODE_ENV !== 'production') {
       console.log(`🔐 Password reset code for ${email}: ${resetCode}`);
@@ -269,7 +257,6 @@ const forgotPassword = async (req, res) => {
       status: 'success',
       message: 'Reset code sent to your email!',
     });
-
   } catch (error) {
     console.error('ForgotPassword Error:', error);
     return res.status(500).json({
