@@ -138,8 +138,6 @@ const login = async (req, res) => {
         console.log(error)
     }
 };
-
-<<<<<<< HEAD
 //hanging on render.com, but working perfectly in localhost
 // const forgotPassword = async (req, res) => {
 //   try {
@@ -215,37 +213,23 @@ const login = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     console.log("Entered forgot password endpoint");
-=======
-const forgotPassword = async (req, res) => {
-  try {
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
+
     const { email } = req.body;
 
     if (!email) {
       return res.status(400).json({
         status: 'fail',
-<<<<<<< HEAD
         message: 'Please provide your Email!',
-=======
-        message: 'Please provide your Email!'
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
       });
     }
 
     const user = await User.findOne({ where: { email } });
-<<<<<<< HEAD
     console.log("User found:", user ? user.email : null);
-=======
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
 
     if (!user) {
       return res.status(404).json({
         status: 'fail',
-<<<<<<< HEAD
         message: 'User does not exist!',
-=======
-        message: 'User does not exist!'
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
       });
     }
 
@@ -257,11 +241,7 @@ const forgotPassword = async (req, res) => {
 
     // Set reset fields
     user.passwordResetToken = hashedToken;
-    user.passwordResetExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
-<<<<<<< HEAD
-=======
-
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
+    user.passwordResetExpiry = Date.now() + 10 * 60 * 1000; // 10 mins
     await user.save();
 
     // HTML email body
@@ -275,115 +255,85 @@ const forgotPassword = async (req, res) => {
       </div>
     `;
 
-<<<<<<< HEAD
-    // Fire-and-forget email sending
-    sendEmail({
-      email: user.email,
-      subject: 'Your password reset code (valid for 10 minutes)',
-      html,
-    }).catch(err => {
-      console.error('Failed to send reset email:', err);
-    });
-
-    // Log in dev mode
-=======
     await sendEmail({
       email: user.email,
       subject: 'Your password reset code (valid for 10 minutes)',
       html
     });
 
-    // Optional: log the code in dev mode
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
     if (process.env.NODE_ENV !== 'production') {
       console.log(`🔐 Password reset code for ${email}: ${resetCode}`);
     }
 
-<<<<<<< HEAD
-    // Respond immediately to client
-    return res.status(200).json({
-      status: 'success',
-      message: 'Reset code sent to your email (if email service works)!',
-=======
     return res.status(200).json({
       status: 'success',
       message: 'Reset code sent to your email!',
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
     });
 
   } catch (error) {
     console.error('ForgotPassword Error:', error);
     return res.status(500).json({
       status: 'error',
-<<<<<<< HEAD
       message: 'Internal server error',
-=======
-      message: 'Internal server error'
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
     });
   }
 };
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 41ad3f73510251b16dd185c254d969143dffba17
 const verifyOtp = async (req, res) => {
-    try {
+  try {
+    const { otp } = req.body;
 
-        const { otp } = req.body;
-
-        if (!otp) {
+    if (!otp) {
       return res.status(400).json({
         status: 'fail',
         message: 'OTP is required.'
       });
     }
-        // 1. get user based on token
-        const hashedToken = crypto.createHash('sha256').update(String(otp)).digest('hex');
 
-        const user = await User.findOne({where: {passwordResetToken: hashedToken,
-            passwordResetExpiry: {
-                [Op.gt]: Date.now()
-            }
-        }});
-        if(!user) {
-            return res.status(400).json({
-                status: 'fail',
-                message: 'Invalid OTP!'
-            });
-        }
+    // Hash OTP
+    const hashedToken = crypto.createHash('sha256').update(String(otp)).digest('hex');
 
-        // Clear OTP fields after verification to prevent reuse
-        // user.passwordResetToken = null;
-        // user.passwordResetExpiry = null;
-        // await user.save();
+    // Find user with valid token
+    const user = await User.findOne({
+      where: {
+        passwordResetToken: hashedToken,
+        passwordResetExpiry: { [Op.gt]: Date.now() }
+      }
+    });
 
-        //generate JWT token
-            const token = jwt.sign(
-                { id: user.id },
-                process.env.JWT_SECRET,
-                { expiresIn: process.env.JWT_EXPIRY}
-            );
-
-            console.log('Verify OTP api is hit!!!')
-        return res.status(200).json({
-            status:'success',
-            message: 'OTP verfied sussccessfully!',
-            data: {
-                token
-            }
-        })
-
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            status:'fail',
-            message: 'Internal Server Error!',
-            error: error
-        })
+    if (!user) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Invalid OTP or OTP expired!',
+      });
     }
-}
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRY }
+    );
+
+    console.log('Verify OTP API hit!');
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'OTP verified successfully!',
+      data: { token }
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      status: 'fail',
+      message: 'Internal Server Error!',
+      error
+    });
+  }
+};
+
 
 const resetPassword = async (req, res) => {
     try {
