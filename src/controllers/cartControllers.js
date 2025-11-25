@@ -60,13 +60,16 @@ const getCart = async (req, res) => {
       };
     });
 
-    res.status(200).json({
+    // Correct total payable calculation
+    const totalPayable = Number(subtotal - totalDiscount).toFixed(2);
+
+    return res.status(200).json({
       status: 'success',
       data: {
         cartItems: formattedCartItems,
         subtotal: subtotal.toFixed(2),
         discount: totalDiscount.toFixed(2),
-        totalPayable: subtotal.toFixed(2)
+        totalPayable
       }
     });
 
@@ -78,6 +81,7 @@ const getCart = async (req, res) => {
     });
   }
 };
+
 
 // ---------------- ADD TO CART ----------------
 const addToCart = async (req, res) => {
