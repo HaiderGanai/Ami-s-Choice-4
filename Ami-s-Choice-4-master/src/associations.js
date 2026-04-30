@@ -11,8 +11,9 @@ const Order = require('./models/orderModel');
 const Review = require('./models/reviewModel');
 const Coupon = require('./models/couponModel');
 const CouponUsage = require('./models/couponUsageModel');
-const { OrderItem, DeliverySlot } = require('./models');
+const { OrderItem } = require('./models');
 
+console.log('Hello from the associations')
 // ===================
 // User Associations
 // ===================
@@ -73,7 +74,3 @@ OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
 // Product - OrderItem
 Product.hasMany(OrderItem, { foreignKey: 'productId' });
 OrderItem.belongsTo(Product, { foreignKey: 'productId' });
-
-// Order - DeliverySlot Associations
-Order.belongsTo(DeliverySlot, { foreignKey: 'deliverySlotId', as: 'deliverySlot' });
-DeliverySlot.hasMany(Order, { foreignKey: 'deliverySlotId', as: 'orders' })

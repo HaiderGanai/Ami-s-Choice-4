@@ -1,4 +1,5 @@
 const { Coupon, CouponUsage } = require("../models");
+console.log("I am now inside coupon validator")
 const validateCoupon = async (code, userId) => {
     const coupon = await Coupon.findOne({ where: { code } });
     // console.log("Coupon from the db::", coupon);
