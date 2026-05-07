@@ -8,9 +8,11 @@ const { orderRouter } = require("./orderRoutes");
 const { productRouter } = require("./productsRoutes");
 const { reviewRouter } = require("./reviewRoutes");
 const { userRouter } = require("./userRoutes");
+const logger = require('../middlewares/loggerMiddleware');
 
 
 const loadRoutes = (app) => {
+    app.use(logger);
     app.use('/api/v1/admin', adminRouter);
     app.use('/api/v1/auth', authRouter);
     app.use('/api/v1', categoryRouter);
