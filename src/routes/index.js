@@ -1,3 +1,4 @@
+const { adminRouter } = require("./adminRoute");
 const { authRouter } = require("./authRoutes");
 const { cartRouter } = require("./cartRoutes");
 const { categoryRouter } = require("./categoriesRoutes");
@@ -10,6 +11,7 @@ const { userRouter } = require("./userRoutes");
 
 
 const loadRoutes = (app) => {
+    app.use('/api/v1/admin', adminRouter);
     app.use('/api/v1/auth', authRouter);
     app.use('/api/v1', categoryRouter);
     app.use('/api/v1',productRouter);
