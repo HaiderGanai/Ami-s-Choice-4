@@ -127,7 +127,7 @@ const updateProfile = async (req, res) => {
     if (value.address) updateData.address = value.address;
     if (value.email) updateData.email = value.email;
     if (req.file) {
-      updateData.profilePic = `/uploads/products/${req.file.filename}`;
+      updateData.profilePic = req.file.path; //CLoudinary URL
     }
 
     // Update the user
