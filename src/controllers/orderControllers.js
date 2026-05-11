@@ -165,7 +165,7 @@ const checkOut = async (req, res) => {
     const random = Math.floor(10000 + Math.random() * 90000); // 5-digit random
     return `ORD-${year}${month}${day}-${random}`;
 };
-    const orderNumber = generateOrderNumber;
+    const orderNumber = generateOrderNumber();
 
     const createdOrder = await Order.create({
   userId,
