@@ -149,7 +149,7 @@ const addToCart = async (req, res) => {
       cartSummary: {
         totalValue: totalCartValue,
         totalDiscount: totalCartDiscount,
-        totalPayable: totalCartValue
+        totalPayable: totalCartValue -totalCartDiscount
       },
     });
 
