@@ -230,8 +230,6 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    console.log("api key::", process.env.SENDGRID_SENDER)
-
     // Generate 4-digit code
     const resetCode = Math.floor(1000 + Math.random() * 9000).toString();
 
