@@ -272,6 +272,7 @@ const cartPreview = async (req, res) => {
 
     let subtotal = 0;
     let totalProductDiscount = 0;
+    let totalPrice = 0;
 
     for (const item of cartItems) {
       const product = item.product;
@@ -280,7 +281,9 @@ const cartPreview = async (req, res) => {
       const originalPrice = Number(product.price);
       const discountedPrice = Number(product.discountPrice);
       const unitDiscount = originalPrice - discountedPrice;
+      
 
+      totalPrice += originalPrice * quantity;
       subtotal += discountedPrice * quantity;
       totalProductDiscount += unitDiscount * quantity;
     }
@@ -296,7 +299,7 @@ const cartPreview = async (req, res) => {
         deliveryFee: Number(deliveryFee),
         CouponDiscount: couponDiscountAmount,
         Discount: totalProductDiscount,
-        Subtotal: subtotal,
+        Subtotal: totalPrice,
         Total: finalTotal
       },
     });
