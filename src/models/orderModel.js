@@ -34,6 +34,10 @@ const Order = sequelize.define('order', {
     type: DataTypes.DECIMAL,
     allowNull: true,
   },
+  couponDiscount: {
+    type: DataTypes.DECIMAL,
+    allowNull: true
+  },
   deliveryFee: {
     type: DataTypes.DECIMAL,
     allowNull: true,
