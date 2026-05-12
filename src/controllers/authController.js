@@ -243,13 +243,13 @@ const forgotPassword = async (req, res) => {
     await user.save();
 
     // Send email via SendGrid
-    const emailSent = await sendEmail(user.email, resetCode);
-    if (!emailSent) {
-      return res.status(500).json({
-        status: 'error',
-        message: 'Failed to send reset email. Try again later.',
-      });
-    }
+    // const emailSent = await sendEmail(user.email, resetCode);
+    // if (!emailSent) {
+    //   return res.status(500).json({
+    //     status: 'error',
+    //     message: 'Failed to send reset email. Try again later.',
+    //   });
+    // }
 
     if (process.env.NODE_ENV !== 'production') {
       console.log(`🔐 Password reset code for ${email}: ${resetCode}`);
