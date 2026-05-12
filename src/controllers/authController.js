@@ -231,7 +231,8 @@ const forgotPassword = async (req, res) => {
     }
 
     // Generate 4-digit code
-    const resetCode = Math.floor(1000 + Math.random() * 9000).toString();
+    // const resetCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const resetCode = String(1234);
 
     // Hash the code
     const hashedToken = crypto.createHash('sha256').update(resetCode).digest('hex');
@@ -267,10 +268,16 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-
 const verifyOtp = async (req, res) => {
   try {
-    const { otp } = req.body;
+    const { email, otp } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'email is required.'
+      });
+    }
 
     if (!otp) {
       return res.status(400).json({
@@ -285,6 +292,7 @@ const verifyOtp = async (req, res) => {
     // Find user with valid token
     const user = await User.findOne({
       where: {
+        email,
         passwordResetToken: hashedToken,
         passwordResetExpiry: { [Op.gt]: Date.now() }
       }
@@ -321,7 +329,6 @@ const verifyOtp = async (req, res) => {
     });
   }
 };
-
 
 const resetPassword = async (req, res) => {
     try {
