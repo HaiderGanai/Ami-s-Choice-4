@@ -107,6 +107,7 @@ const checkOut = async (req, res) => {
 
     let subtotal = 0;
     let totalProductDiscount = 0;
+    let originalTotal = 0;
 
 
     const orderItems = [];
@@ -128,9 +129,12 @@ const checkOut = async (req, res) => {
       const regularPrice = Number(product.price);
       const discountPerUnit = regularPrice - price;
 
+      const originalPrice = regularPrice * quantity;
       const itemTotalPrice = price * quantity;
       const discount = discountPerUnit * quantity;
 
+
+      originalTotal += originalPrice;
       subtotal += itemTotalPrice;
       totalProductDiscount += discount;
 
@@ -165,6 +169,8 @@ const checkOut = async (req, res) => {
     const random = Math.floor(10000 + Math.random() * 90000); // 5-digit random
     return `ORD-${year}${month}${day}-${random}`;
 };
+
+    console.log("original total::", originalTotal)
     const orderNumber = generateOrderNumber();
 
     const createdOrder = await Order.create({
@@ -175,7 +181,7 @@ const checkOut = async (req, res) => {
   notes,
   deliveryAddress,
   phone,
-  subTotal: parseFloat(subtotal),
+  subTotal: parseFloat(originalTotal),
   deliveryFee: parseFloat(deliveryFee),
   couponDiscount: parseFloat(couponDiscountAmount),
   discount: parseFloat(totalProductDiscount),
@@ -186,6 +192,8 @@ const checkOut = async (req, res) => {
   deliverySlotId,
   estimatedDelivery
 }, { transaction: t });
+
+console.log("subtotal::", subtotal)
 
 
     // 2. Create order items
@@ -215,7 +223,7 @@ const checkOut = async (req, res) => {
         order: createdOrder,
         estimatedDelivery,
         products: orderItems,
-        Subtotal: subtotal,
+        Subtotal: parseFloat(originalTotal),
         deliveryFee: Number(deliveryFee),
         ProductLevelDiscount: totalProductDiscount,
         CouponDiscount: couponDiscountAmount,
