@@ -187,7 +187,7 @@ const checkOut = async (req, res) => {
   discount: parseFloat(totalProductDiscount),
   total: parseFloat(totalPayable),
   orderNumber,
-  totalAmount: parseFloat(totalPayable),
+  totalAmount: totalPayable,
   status: "pending",
   deliverySlotId,
   estimatedDelivery
@@ -337,6 +337,7 @@ const specificOrder = async (req, res) => {
       deliveryAddress: order.deliveryAddress,
       deliveryFee: order.deliveryFee,
       discount: order.discount || 0,
+      couponDiscount: order.couponDiscount || 0,
       total: order.totalAmount,
       estimatedDelivery: order.estimatedDelivery,
       deliverySlot: order.deliverySlot ? {
