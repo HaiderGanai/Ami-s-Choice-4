@@ -336,7 +336,7 @@ const specificOrder = async (req, res) => {
       subTotal: order.subTotal,
       deliveryAddress: order.deliveryAddress,
       deliveryFee: order.deliveryFee,
-      couponDiscount: order.discount || 0,
+      discount: order.discount || 0,
       total: order.totalAmount,
       estimatedDelivery: order.estimatedDelivery,
       deliverySlot: order.deliverySlot ? {
