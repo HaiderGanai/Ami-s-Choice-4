@@ -1,6 +1,7 @@
 const { Cart, Product } = require('../models');
 const { validateCoupon } = require("../utils/couponValidator");
 const { Op } = require("sequelize");
+const { sequelize } = require('../config/dbConnect');
 
 // ---------------- GET CART ----------------
 const getCart = async (req, res) => {
@@ -310,4 +311,108 @@ const cartPreview = async (req, res) => {
   }
 };
 
-module.exports = { getCart, addToCart, updateCart, removeCartProduct, deleteCart, cartPreview };
+// ---------------- BULK ADD TO CART (guest cart sync) ----------------
+const bulkAddToCart = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const items = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Request body must be a non-empty array of { productId, quantity }'
+      });
+    }
+
+    const skipped = [];
+
+    await sequelize.transaction(async (t) => {
+      for (const entry of items) {
+        const { productId, productQuantity } = entry;
+        const qty = Number(productQuantity);
+
+        if (!productId || !qty || qty < 1) {
+          skipped.push({ productId, reason: 'Invalid productId or quantity' });
+          continue;
+        }
+
+        const product = await Product.findByPk(productId, { transaction: t });
+        if (!product) {
+          skipped.push({ productId, reason: 'Product not found' });
+          continue;
+        }
+
+        if (!product.isInStock || product.stockQuantity < 1) {
+          skipped.push({ productId, productName: product.name, reason: 'Out of stock' });
+          continue;
+        }
+
+        const existingItem = await Cart.findOne({ where: { userId, productId }, transaction: t });
+
+        if (existingItem) {
+          const newQty = Math.min(existingItem.productQuantity + qty, product.stockQuantity);
+          existingItem.productQuantity = newQty;
+          await existingItem.save({ transaction: t });
+        } else {
+          const cappedQty = Math.min(qty, product.stockQuantity);
+          await Cart.create({ userId, productId, productQuantity: cappedQty }, { transaction: t });
+        }
+      }
+    });
+
+    const cartItems = await Cart.findAll({
+      where: { userId },
+      include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'image', 'weight', 'price', 'discountPrice'] }]
+    });
+
+    let subtotal = 0;
+    let totalDiscount = 0;
+
+    const formattedCartItems = cartItems.map(item => {
+      const { id: cartItemId, productQuantity } = item;
+      const { id: productId, name, image, weight, price, discountPrice } = item.product;
+
+      const totalOriginalPrice = Number(price) * productQuantity;
+      const totalDiscountedPrice = Number(discountPrice) * productQuantity;
+      const itemDiscount = totalOriginalPrice - totalDiscountedPrice;
+
+      subtotal += totalDiscountedPrice;
+      totalDiscount += itemDiscount;
+
+      return {
+        id: cartItemId,
+        productId,
+        productName: name,
+        productImage: image,
+        productWeight: weight,
+        productQuantity,
+        itemTotalPrice: totalDiscountedPrice.toFixed(2),
+        originalPricePerUnit: price,
+        discountPricePerUnit: discountPrice
+      };
+    });
+
+    const skippedCount = skipped.length;
+    const message = skippedCount > 0
+      ? `Cart synced. ${skippedCount} item(s) could not be added.`
+      : 'Cart synced successfully.';
+
+    return res.status(200).json({
+      status: 'success',
+      message,
+      data: {
+        cartItems: formattedCartItems,
+        subtotal: subtotal.toFixed(2),
+        discount: totalDiscount.toFixed(2),
+        totalPayable: (subtotal - totalDiscount).toFixed(2)
+      },
+      ...(skippedCount > 0 && { skipped })
+    });
+
+  } catch (error) {
+    console.error('Bulk Add To Cart Error:', error);
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong during cart sync!' });
+  }
+};
+
+module.exports = { getCart, addToCart, updateCart, removeCartProduct, deleteCart, cartPreview, bulkAddToCart };
