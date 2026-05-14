@@ -23,7 +23,7 @@ const Order = sequelize.define('order', {
     allowNull: true,
   },
   orderNumber: {
-  type: DataTypes.UUID,
+  type: DataTypes.STRING,
   allowNull: false,
 },
   subTotal: {
@@ -47,7 +47,7 @@ const Order = sequelize.define('order', {
     allowNull: false,
   },
   status: {
-    type: DataTypes.ENUM('delivered', 'pending', 'cancelled'),
+    type: DataTypes.ENUM('delivered', 'pending', 'cancelled', 'dispatched'),
     defaultValue: 'pending',
   },
   deliveryAddress: {

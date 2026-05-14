@@ -433,63 +433,29 @@ const cancelOrder = async (req, res) => {
   try {
     const userId = req.user.id;
     const { orderNumber } = req.params;
-    const { status } = req.body;
 
-    // console.log("user's id::", userId)
-    // if (!userId) {
-    //     return res.status(400).json({
-    //         status: 'fail',
-    //         message: 'User ID is required in the body.'
-    //     });
-    // }
+    console.log("cancelOrder lookup:", { userId, orderNumber });
+    const order = await Order.findOne({ where: { userId, orderNumber } });
 
-    const validStatuses = ["cancelled"];
-
-    if (!status || !validStatuses.includes(status)) {
-      return res.status(400).json({
-        status: "fail",
-        message:
-          'Invalid status. Only "cancelled" is allowed for this operation',
-      });
+    if (!order) {
+      return res.status(404).json({ status: 'fail', message: 'Order not found!' });
     }
 
-    const orders = await Order.findAll({
-      where: { userId, orderNumber },
-    });
-
-    if (orders.length === 0) {
-      return res.status(404).json({
-        status: "fail",
-        message: "Order not found!",
-      });
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ status: 'fail', message: 'Order is already cancelled.' });
     }
 
-    // Check if all order items are already cancelled
-    const allCancelled = orders.every((order) => order.status === "cancelled");
-
-    if (allCancelled) {
-      return res.status(400).json({
-        status: "fail",
-        message: "Order is already cancelled.",
-      });
+    if (order.status !== 'pending') {
+      return res.status(400).json({ status: 'fail', message: 'Order cannot be cancelled anymore!' });
     }
 
-    // Update the status of each order item
-    for (let order of orders) {
-      order.status = status;
-      await order.save();
-    }
+    order.status = 'cancelled';
+    await order.save();
 
-    return res.status(200).json({
-      status: "success",
-      message: "Order status updated!",
-    });
+    return res.status(200).json({ status: 'success', message: 'Order cancelled.' });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: "fail",
-      message: "Something went wrong during finding orders!",
-    });
+    console.error(error);
+    return res.status(500).json({ status: 'fail', message: 'Failed to cancel order.' });
   }
 };
 
