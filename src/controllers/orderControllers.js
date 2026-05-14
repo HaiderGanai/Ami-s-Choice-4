@@ -198,10 +198,6 @@ const checkOut = async (req, res) => {
   estimatedDelivery
 }, { transaction: t });
 
-console.log("subtotal::", subtotal)
-console.log("coupon discount::", couponDiscount)
-console.log("total::", total)
-
 
     // 2. Create order items
     for (const item of orderItems) {

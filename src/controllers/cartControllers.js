@@ -6,78 +6,28 @@ const { sequelize } = require('../config/dbConnect');
 // ---------------- GET CART ----------------
 const getCart = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const { items, totals } = await getCartWithTotals(req.user.id);
 
-    const cartItems = await Cart.findAll({
-      where: { userId },
-      include: [
-        {
-          model: Product,
-          as: 'product',
-          attributes: ['id', 'name', 'image', 'weight', 'price', 'discountPrice']
-        }
-      ]
-    });
-
-    if (!cartItems || cartItems.length === 0) {
+    if (!items.length) {
       return res.status(200).json({
         status: 'success',
-        message: "Cart is empty for this user!",
-        data: {
-          cartItems: [],
-          subtotal: 0,
-          discount: 0,
-          totalPayable: 0
-        }
+        message: 'Cart is empty for this user!',
+        data: { cartItems: [], subtotal: '0.00', discount: '0.00', totalPayable: '0.00' },
       });
     }
-
-    let subtotal = 0;
-    let totalDiscount = 0;
-
-    const formattedCartItems = cartItems.map(item => {
-      const { id: cartItemId, productQuantity } = item;
-      const { id: productId, name, image, weight, price, discountPrice } = item.product;
-
-      const totalOriginalPrice = Number(price) * productQuantity;
-      const totalDiscountedPrice = Number(discountPrice) * productQuantity;
-      const itemDiscount = totalOriginalPrice - totalDiscountedPrice;
-
-      subtotal += totalDiscountedPrice;
-      totalDiscount += itemDiscount;
-
-      return {
-        id: cartItemId,
-        productId,
-        productName: name,
-        productImage: image,
-        productWeight: weight,
-        productQuantity,
-        itemTotalPrice: totalDiscountedPrice.toFixed(2),
-        originalPricePerUnit: price,
-        discountPricePerUnit: discountPrice
-      };
-    });
-
-    // Correct total payable calculation
-    const totalPayable = Number(subtotal - totalDiscount).toFixed(2);
 
     return res.status(200).json({
       status: 'success',
       data: {
-        cartItems: formattedCartItems,
-        subtotal: subtotal.toFixed(2),
-        discount: totalDiscount.toFixed(2),
-        totalPayable
-      }
+        cartItems: items,
+        subtotal: totals.originalSubtotal.toFixed(2),
+        discount: totals.productDiscount.toFixed(2),
+        totalPayable: totals.payableBeforeCoupon.toFixed(2),
+      },
     });
-
-  } catch (error) {
-    console.error('Cart Fetch Error:', error);
-    res.status(500).json({
-      status: 'fail',
-      message: 'Internal Server Error!'
-    });
+  } catch (err) {
+    console.error('Cart Fetch Error:', err);
+    res.status(500).json({ status: 'fail', message: 'Internal Server Error!' });
   }
 };
 
@@ -253,60 +203,43 @@ const deleteCart = async (req, res) => {
 // ---------------- CART PREVIEW WITH COUPON ----------------
 const cartPreview = async (req, res) => {
   try {
-    const userId = req.user.id;
     const { couponCode, deliveryFee = 0 } = req.body;
+    const { items, totals } = await getCartWithTotals(req.user.id);
+
+    if (!items.length) {
+      return res.status(400).json({ status: 'fail', message: 'Your cart is empty!' });
+    }
 
     let couponDiscountPercent = 0;
-    let couponMessage = "No coupon applied";
+    let couponDiscountAmount = 0;
+    let couponMessage = 'No coupon applied';
 
     if (couponCode) {
-      const result = await validateCoupon(couponCode, userId);
-      if (!result.valid) return res.status(400).json({ status: 'fail', message: result.message });
-
-      const coupon = result.coupon;
-      couponDiscountPercent = Number(coupon.discountAmount);
+      const result = await validateCoupon(couponCode, req.user.id);
+      if (!result.valid) {
+        return res.status(400).json({ status: 'fail', message: result.message });
+      }
+      couponDiscountPercent = Number(result.coupon.discountAmount);
+      couponDiscountAmount = (totals.payableBeforeCoupon * couponDiscountPercent) / 100;
       couponMessage = `Coupon "${couponCode}" applied successfully`;
     }
 
-    const cartItems = await Cart.findAll({ where: { userId }, include: [{ model: Product, as: "product" }] });
-    if (!cartItems.length) return res.status(400).json({ status: 'fail', message: "Your cart is empty!" });
-
-    let subtotal = 0;
-    let totalProductDiscount = 0;
-    let totalPrice = 0;
-
-    for (const item of cartItems) {
-      const product = item.product;
-      const quantity = item.productQuantity;
-
-      const originalPrice = Number(product.price);
-      const discountedPrice = Number(product.discountPrice);
-      const unitDiscount = originalPrice - discountedPrice;
-      
-
-      totalPrice += originalPrice * quantity;
-      subtotal += discountedPrice * quantity;
-      totalProductDiscount += unitDiscount * quantity;
-    }
-
-    const couponDiscountAmount = (subtotal * couponDiscountPercent) / 100;
-    const finalTotal = subtotal - couponDiscountAmount + Number(deliveryFee);
+    const finalTotal = totals.payableBeforeCoupon - couponDiscountAmount + Number(deliveryFee);
 
     return res.status(200).json({
       status: 'success',
       message: couponMessage,
       data: {
-        cartItems,
+        cartItems: items,
+        subtotal: Number(totals.originalSubtotal.toFixed(2)),
+        discount: Number(totals.productDiscount.toFixed(2)),
+        couponDiscount: Number(couponDiscountAmount.toFixed(2)),
         deliveryFee: Number(deliveryFee),
-        CouponDiscount: couponDiscountAmount,
-        Discount: totalProductDiscount,
-        Subtotal: totalPrice,
-        Total: finalTotal
+        total: Number(finalTotal.toFixed(2)),
       },
     });
-
-  } catch (error) {
-    console.error("Cart Preview Error:", error);
+  } catch (err) {
+    console.error('Cart Preview Error:', err);
     return res.status(500).json({ status: 'fail', message: 'Internal Server Error!' });
   }
 };
@@ -414,5 +347,52 @@ const bulkAddToCart = async (req, res) => {
     return res.status(500).json({ status: 'fail', message: 'Something went wrong during cart sync!' });
   }
 };
+
+// services/cart.service.js
+async function getCartWithTotals(userId) {
+  const cartItems = await Cart.findAll({
+    where: { userId },
+    include: [{
+      model: Product,
+      as: 'product',
+      attributes: ['id', 'name', 'image', 'weight', 'price', 'discountPrice'],
+    }],
+  });
+
+  let originalSubtotal = 0;
+  let productDiscount = 0;
+
+  const items = cartItems.map(item => {
+    const { id: cartItemId, productQuantity } = item;
+    const { id: productId, name, image, weight, price, discountPrice } = item.product;
+
+    const lineOriginal = Number(price) * productQuantity;
+    const lineDiscounted = Number(discountPrice) * productQuantity;
+
+    originalSubtotal += lineOriginal;
+    productDiscount += lineOriginal - lineDiscounted;
+
+    return {
+      id: cartItemId,
+      productId,
+      productName: name,
+      productImage: image,
+      productWeight: weight,
+      productQuantity,
+      itemTotalPrice: lineDiscounted.toFixed(2),
+      originalPricePerUnit: price,
+      discountPricePerUnit: discountPrice,
+    };
+  });
+
+  return {
+    items,
+    totals: {
+      originalSubtotal,
+      productDiscount,
+      payableBeforeCoupon: originalSubtotal - productDiscount,
+    },
+  };
+}
 
 module.exports = { getCart, addToCart, updateCart, removeCartProduct, deleteCart, cartPreview, bulkAddToCart };
