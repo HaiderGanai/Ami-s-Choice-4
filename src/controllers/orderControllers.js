@@ -30,6 +30,9 @@ const checkOut = async (req, res) => {
     deliverySlotId
   } = req.body;
 
+  console.log("Incoming data:")
+  console.log("couponCode::", couponCode)
+  
   //Validate slot exists and still availible
   if(!deliverySlotId) {
     return res.status(400).json({
@@ -96,6 +99,8 @@ const checkOut = async (req, res) => {
       transaction: t,
       lock: true
     });
+
+    console.log("All data inside user cart::", cartItems)
 
     if (!cartItems.length) {
       await t.rollback();
@@ -194,6 +199,8 @@ const checkOut = async (req, res) => {
 }, { transaction: t });
 
 console.log("subtotal::", subtotal)
+console.log("coupon discount::", couponDiscount)
+console.log("total::", total)
 
 
     // 2. Create order items
@@ -345,6 +352,8 @@ const specificOrder = async (req, res) => {
         windowLabel: order.deliverySlot.windowLabel
       } : null
     };
+
+    console.log("User's order from db::", responseData)
 
     return res.status(200).json({
       status: 'success',
