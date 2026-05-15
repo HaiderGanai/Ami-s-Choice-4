@@ -425,4 +425,71 @@ const logout = async (req, res) => {
 }
 
 
-module.exports = { register, login, forgotPassword, verifyOtp, resetPassword, logout };
+const verifyEmail = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Email is required.'
+            });
+        }
+
+        if (!otp) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'OTP is required.'
+            });
+        }
+
+        const hashedToken = crypto.createHash('sha256').update(String(otp)).digest('hex');
+
+        const user = await User.findOne({
+            where: {
+                email,
+                passwordResetToken: hashedToken,
+                passwordResetExpiry: { [Op.gt]: Date.now() }
+            }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                status: 'fail',
+                message: 'Invalid OTP or OTP expired!'
+            });
+        }
+
+        user.isEmailVerified = true;
+        user.passwordResetToken = null;
+        user.passwordResetExpiry = null;
+        await user.save();
+
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: process.env.JWT_EXPIRY }
+        );
+
+        console.log('Verify Email API hit!');
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Email verified successfully!',
+            data: {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                token
+            }
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            status: 'fail',
+            message: 'Internal Server Error!'
+        });
+    }
+};
+
+module.exports = { register, login, forgotPassword, verifyOtp, resetPassword, logout, verifyEmail };
