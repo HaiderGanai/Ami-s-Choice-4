@@ -344,6 +344,147 @@ const adminUpdateCategoryStatus = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────
+// ORDERS (ADMIN)
+// ─────────────────────────────────────────
+
+const adminGetAllOrders = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const offset = (page - 1) * limit;
+    const { search } = req.query;
+
+    const whereClause = {};
+    if (search) {
+      whereClause[Op.or] = [
+        { orderNumber: search },
+        { email: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const { count, rows: orders } = await Order.findAndCountAll({
+      where: whereClause,
+      attributes: ['id', 'orderNumber', 'firstName', 'lastName', 'email', 'totalAmount', 'status', 'createdAt', 'estimatedDelivery'],
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']]
+    });
+
+    return res.status(200).json({
+      status: 'success',
+      data: { orders },
+      pagination: { totalItems: count, totalPages: Math.ceil(count / limit), currentPage: page, perPage: limit }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminGetOrderDetail = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const order = await Order.findOne({
+      where: { orderNumber },
+      include: [
+        {
+          model: OrderItem,
+          include: [{ model: Product, attributes: ['name', 'image', 'price', 'weight'] }]
+        },
+        {
+          model: DeliverySlot,
+          as: 'deliverySlot',
+          attributes: ['label', 'windowLabel', 'offsetDays']
+        }
+      ]
+    });
+    if (!order) {
+      return res.status(404).json({ status: 'fail', message: 'Order not found!' });
+    }
+    const items = order.orderItems.map(item => ({
+      name: item.product.name,
+      image: item.product.image,
+      price: item.product.price,
+      weight: item.product.weight,
+      quantity: item.productQuantity,
+      itemTotalPrice: item.itemTotalPrice
+    }));
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        orderNumber: order.orderNumber,
+        userId: order.userId,
+        firstName: order.firstName,
+        lastName: order.lastName,
+        email: order.email,
+        phone: order.phone,
+        deliveryAddress: order.deliveryAddress,
+        notes: order.notes,
+        products: items,
+        subTotal: order.subTotal,
+        discount: order.discount || 0,
+        couponDiscount: order.couponDiscount || 0,
+        deliveryFee: order.deliveryFee,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        cancelReason: order.cancelReason,
+        estimatedDelivery: order.estimatedDelivery,
+        deliverySlot: order.deliverySlot
+          ? { label: order.deliverySlot.label, windowLabel: order.deliverySlot.windowLabel }
+          : null,
+        createdAt: order.createdAt
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const VALID_TRANSITIONS = {
+  pending: ['dispatched', 'cancelled'],
+  dispatched: ['delivered'],
+  delivered: [],
+  cancelled: []
+};
+
+const adminUpdateOrderStatus = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ status: 'fail', message: 'Status is required.' });
+    }
+
+    const order = await Order.findOne({ where: { orderNumber } });
+    if (!order) {
+      return res.status(404).json({ status: 'fail', message: 'Order not found!' });
+    }
+
+    const allowedNext = VALID_TRANSITIONS[order.status] || [];
+    if (!allowedNext.includes(status)) {
+      const allowed = allowedNext.length ? allowedNext.join(', ') : 'none';
+      return res.status(400).json({
+        status: 'fail',
+        message: `Cannot transition order from "${order.status}" to "${status}". Allowed: ${allowed}.`
+      });
+    }
+
+    order.status = status;
+    await order.save();
+
+    await Notification.create({
+      userId: order.userId,
+      title: 'Order Status Updated',
+      body: `Your order ${orderNumber} status has been updated to "${status}".`
+    });
+
+    return res.status(200).json({ status: 'success', message: 'Order status updated!' });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
 module.exports = {
   login,
   getAllUsers,
@@ -358,4 +499,7 @@ module.exports = {
   adminCreateCategory,
   adminUpdateCategory,
   adminUpdateCategoryStatus,
+  adminGetAllOrders,
+  adminGetOrderDetail,
+  adminUpdateOrderStatus,
 };
