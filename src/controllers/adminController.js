@@ -16,7 +16,7 @@ const login = async (req, res) => {
     }
     const user = await User.findOne({ where: { email } });
     if (!user || user.role !== 'admin') {
-      return res.status(401).json({ status: 'fail', message: 'Invalid credentials!' });
+      return res.status(401).json({ status: 'fail', message: 'Not allowed!' });
     }
     const passMatch = await bcrypt.compare(password, user.password);
     if (!passMatch) {
@@ -485,7 +485,6 @@ const adminUpdateOrderStatus = async (req, res) => {
   }
 };
 
-
 // ─────────────────────────────────────────
 // COUPONS (ADMIN)
 // ─────────────────────────────────────────
@@ -559,6 +558,77 @@ const adminDeleteCoupon = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────
+// REVIEWS (ADMIN)
+// ─────────────────────────────────────────
+
+const adminGetAllReviews = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const offset = (page - 1) * limit;
+
+    const { count, rows: reviews } = await Review.findAndCountAll({
+      include: [
+        { model: Product, attributes: ['name', 'image'] },
+        { model: User, attributes: ['firstName', 'lastName', 'email'] }
+      ],
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']]
+    });
+
+    return res.status(200).json({
+      status: 'success',
+      data: { reviews },
+      pagination: { totalItems: count, totalPages: Math.ceil(count / limit), currentPage: page, perPage: limit }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminDeleteReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const review = await Review.findByPk(id);
+    if (!review) {
+      return res.status(404).json({ status: 'fail', message: 'Review not found!' });
+    }
+    await review.destroy();
+    return res.status(200).json({ status: 'success', message: 'Review deleted successfully!' });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+// ─────────────────────────────────────────
+// SUPPORT FORMS (ADMIN)
+// ─────────────────────────────────────────
+
+const adminGetSupportForms = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const offset = (page - 1) * limit;
+
+    const { count, rows: submissions } = await SupportForm.findAndCountAll({
+      include: [{ model: User, as: 'user', attributes: ['firstName', 'lastName', 'email'] }],
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']]
+    });
+
+    return res.status(200).json({
+      status: 'success',
+      data: { submissions },
+      pagination: { totalItems: count, totalPages: Math.ceil(count / limit), currentPage: page, perPage: limit }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
 module.exports = {
   login,
   getAllUsers,
@@ -580,4 +650,7 @@ module.exports = {
   adminCreateCoupon,
   adminUpdateCoupon,
   adminDeleteCoupon,
+  adminGetAllReviews,
+  adminDeleteReview,
+  adminGetSupportForms,
 };
