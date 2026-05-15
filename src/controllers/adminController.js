@@ -485,6 +485,80 @@ const adminUpdateOrderStatus = async (req, res) => {
   }
 };
 
+
+// ─────────────────────────────────────────
+// COUPONS (ADMIN)
+// ─────────────────────────────────────────
+
+const adminListCoupons = async (req, res) => {
+  try {
+    const coupons = await Coupon.findAll({ order: [['createdAt', 'DESC']] });
+    return res.status(200).json({ status: 'success', data: { coupons } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminCreateCoupon = async (req, res) => {
+  try {
+    const { couponCode, discountAmount, expiresAt, isActive } = req.body;
+    if (!couponCode || !discountAmount || !expiresAt || isActive === undefined) {
+      return res.status(400).json({ status: 'fail', message: 'Please enter all fields!' });
+    }
+    const codeExists = await Coupon.findOne({ where: { code: couponCode } });
+    if (codeExists) {
+      return res.status(409).json({ status: 'fail', message: 'A coupon with this code already exists!' });
+    }
+    if (new Date(expiresAt).getTime() <= Date.now()) {
+      return res.status(422).json({ status: 'fail', message: 'Coupons cannot have a past expiry date!' });
+    }
+    const coupon = await Coupon.create({ code: couponCode, discountAmount, expiresAt, isActive });
+    return res.status(201).json({ status: 'success', message: 'Coupon created successfully!', data: { coupon } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminUpdateCoupon = async (req, res) => {
+  try {
+    const { code } = req.params;
+    const coupon = await Coupon.findOne({ where: { code } });
+    if (!coupon) {
+      return res.status(404).json({ status: 'fail', message: `Coupon "${code}" not found.` });
+    }
+    const { couponCode, discountAmount, expiresAt, isActive } = req.body;
+    const updatedFields = {};
+    if (couponCode !== undefined) updatedFields.code = couponCode;
+    if (discountAmount !== undefined) {
+      const num = parseFloat(discountAmount);
+      if (isNaN(num) || num < 0 || num > 100) {
+        return res.status(400).json({ status: 'fail', message: 'discountAmount must be between 0 and 100.' });
+      }
+      updatedFields.discountAmount = num;
+    }
+    if (expiresAt !== undefined) updatedFields.expiresAt = expiresAt;
+    if (isActive !== undefined) updatedFields.isActive = isActive;
+    await coupon.update(updatedFields);
+    return res.status(200).json({ status: 'success', message: 'Coupon updated successfully!', data: { coupon } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminDeleteCoupon = async (req, res) => {
+  try {
+    const { code } = req.params;
+    const coupon = await Coupon.findOne({ where: { code } });
+    if (!coupon) {
+      return res.status(404).json({ status: 'fail', message: `Coupon "${code}" not found.` });
+    }
+    await coupon.destroy();
+    return res.status(200).json({ status: 'success', message: 'Coupon deleted successfully!' });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
 module.exports = {
   login,
   getAllUsers,
@@ -502,4 +576,8 @@ module.exports = {
   adminGetAllOrders,
   adminGetOrderDetail,
   adminUpdateOrderStatus,
+  adminListCoupons,
+  adminCreateCoupon,
+  adminUpdateCoupon,
+  adminDeleteCoupon,
 };
