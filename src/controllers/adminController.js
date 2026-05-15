@@ -154,7 +154,7 @@ const adminCreateProduct = async (req, res) => {
       data: { product: newProduct }
     });
   } catch (error) {
-    return res.status(500).json({ status: 'fail', message: 'Something went wrong!', error: error.message });
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
   }
 };
 
@@ -166,7 +166,7 @@ const adminBulkCreateProducts = async (req, res) => {
     }
     for (const product of products) {
       const { name, description, weight, price, stockQuantity, categoryId } = product;
-      if (!name?.trim() || !description?.trim() || isNaN(parseFloat(weight)) || isNaN(parseFloat(price)) || isNaN(parseInt(stockQuantity)) || isNaN(parseInt(categoryId))) {
+      if (!name?.trim() || !description?.trim() || isNaN(parseFloat(weight)) || isNaN(parseFloat(price)) || isNaN(parseInt(stockQuantity)) || !categoryId) {
         return res.status(400).json({ status: 'fail', message: 'Each product must have: name, description, weight, price, stockQuantity, categoryId.' });
       }
       const category = await Category.findByPk(categoryId);
@@ -182,7 +182,7 @@ const adminBulkCreateProducts = async (req, res) => {
     const createdProducts = await Product.bulkCreate(sanitized);
     return res.status(201).json({ status: 'success', data: { createdProducts } });
   } catch (error) {
-    return res.status(500).json({ status: 'fail', message: 'Something went wrong!', error: error.message });
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
   }
 };
 
@@ -193,10 +193,21 @@ const adminUpdateProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ status: 'fail', message: 'Product not found!' });
     }
-    const updateData = { ...req.body };
-    if (req.file?.path) {
-      updateData.image = req.file.path;
+
+    const { name, description, weight, price, stockQuantity, categoryId, productDiscount } = req.body;
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (weight !== undefined) updateData.weight = weight;
+    if (price !== undefined) updateData.price = price;
+    if (stockQuantity !== undefined) {
+      updateData.stockQuantity = stockQuantity;
+      updateData.isInStock = stockQuantity > 0;
     }
+    if (categoryId !== undefined) updateData.categoryId = categoryId;
+    if (productDiscount !== undefined) updateData.productDiscount = productDiscount;
+    if (req.file?.path) updateData.image = req.file.path;
+
     await product.update(updateData);
     return res.status(200).json({
       status: 'success',
@@ -204,7 +215,7 @@ const adminUpdateProduct = async (req, res) => {
       data: { product }
     });
   } catch (error) {
-    return res.status(500).json({ status: 'fail', message: 'Something went wrong!', error: error.message });
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
   }
 };
 
