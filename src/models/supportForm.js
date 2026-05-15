@@ -11,6 +11,15 @@ const SupportForm = sequelize.define("SupportForm", {
         type: DataTypes.UUID,
         allowNull: false,
     },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    email: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: { isEmail: true },
+    },
     category: {
         type: DataTypes.STRING,
         allowNull: false,
