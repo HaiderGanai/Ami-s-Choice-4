@@ -15,15 +15,12 @@ const login = async (req, res) => {
       return res.status(400).json({ status: 'fail', message: 'Please enter all fields!' });
     }
     const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(404).json({ status: 'fail', message: 'User does not exist!' });
-    }
-    if (user.role !== 'admin') {
-      return res.status(401).json({ status: 'fail', message: 'You are not authorized on this route!' });
+    if (!user || user.role !== 'admin') {
+      return res.status(401).json({ status: 'fail', message: 'Invalid credentials!' });
     }
     const passMatch = await bcrypt.compare(password, user.password);
     if (!passMatch) {
-      return res.status(400).json({ status: 'fail', message: 'Invalid credentials!' });
+      return res.status(401).json({ status: 'fail', message: 'Invalid credentials!' });
     }
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
@@ -35,7 +32,7 @@ const login = async (req, res) => {
       data: { firstName: user.firstName, lastName: user.lastName, token }
     });
   } catch (error) {
-    return res.status(500).json({ status: 'fail', message: error.message });
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
   }
 };
 
