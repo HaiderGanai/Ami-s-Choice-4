@@ -51,6 +51,11 @@ const User = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    isEmailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+    },
   },
   {
     scopes: {

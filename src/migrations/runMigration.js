@@ -1,13 +1,11 @@
 // migrations/runMigration.js
-require('dotenv').config();
-const { sequelize } = require('../config/dbConnect');  // adjust path
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+const { sequelize } = require('../config/dbConnect');
 
 const migrate = async () => {
   try {
     await sequelize.query(`
-      ALTER TABLE orders
-      ADD COLUMN deliverySlotId CHAR(36) NULL,
-      ADD COLUMN estimatedDelivery VARCHAR(255) NULL;
+      ALTER TABLE users ADD COLUMN isEmailVerified BOOLEAN NOT NULL DEFAULT false;
     `);
     console.log('✅ Migration successful!');
     process.exit(0);
