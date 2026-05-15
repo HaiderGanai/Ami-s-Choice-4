@@ -36,7 +36,7 @@ const createCategory = async (req, res) => {
 
 const getAllCategories =async (req, res) => {
     try {
-        const categories = await Categories.findAll();
+        const categories = await Categories.findAll({ where: { isBlocked: false } });
     if(!categories) {
         return res.status(200).json({
             status: 'success',
@@ -111,27 +111,10 @@ const updateCategories = async (req, res) => {
 };
 
 const deleteCategories = async (req, res) => {
-    try {
-        const id =req.params.id;
-    const category = await Categories.findByPk(id);
-    if(!category) {
-        return res.status(404).json({
-                status: 'fail',
-                message: 'Category not found!'
-            })
-    }
-    await category.destroy();
-    res.status(200).json({
-        status: 'success',
-        message: 'Category deleted successfully!'
-    })
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            status: 'fail',
-            message: 'Something went wrong while deleting the category!'
-        })
-    }
-}
+  return res.status(405).json({
+    status: 'fail',
+    message: 'Categories cannot be deleted.'
+  });
+};
 
 module.exports = { createCategory, getAllCategories, updateCategories, deleteCategories };
