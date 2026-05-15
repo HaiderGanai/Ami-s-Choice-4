@@ -43,7 +43,12 @@ const Product = sequelize.define('product', {
     categoryId: {
         type: DataTypes.INTEGER,
         allowNull: true
-    }
+    },
+    isBlocked: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+    },
 }, {
     hooks: {
         beforeCreate: (product) => {

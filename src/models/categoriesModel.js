@@ -1,14 +1,19 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/dbConnect');
 
-const Categories = sequelize.define('categorie',{
+const Categories = sequelize.define('categorie', {
     name: {
         type: DataTypes.STRING,
-        allowNull:false
+        allowNull: false
     },
     icon: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    isBlocked: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
     }
 });
 
