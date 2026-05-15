@@ -10,6 +10,7 @@ const { reviewRouter } = require("./reviewRoutes");
 const { userRouter } = require("./userRoutes");
 const { notificationRouter } = require("./notificationRoutes");
 const logger = require('../middlewares/loggerMiddleware');
+const { supportFormRouter } = require("./supporFormRoute");
 
 
 const loadRoutes = (app) => {
@@ -25,6 +26,7 @@ const loadRoutes = (app) => {
     app.use('/api/v1', reviewRouter);
     app.use('/api/v1', notificationRouter);
     app.use('/api/delivery-slots', deliverySlotRouter)
+    app.use('/api/v1', supportFormRouter);
 
 //     app.all('/:path(*)', (req, res, next) => {
 //     res.status(404).json({

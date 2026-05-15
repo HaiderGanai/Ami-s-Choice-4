@@ -12,6 +12,7 @@ const CouponUsage = require('./couponUsageModel');
 const OrderItem = require('./orderProduct');
 const DeliverySlot = require('./deliverySlotModel');
 const Notification = require('./notificationModel');
+const SupportForm = require('./supportForm');
 
 module.exports = {
   User,
@@ -25,4 +26,5 @@ module.exports = {
   Coupon,
   DeliverySlot,
   Notification,
+  SupportForm
 };

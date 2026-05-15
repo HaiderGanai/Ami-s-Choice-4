@@ -11,7 +11,7 @@ const Order = require('./models/orderModel');
 const Review = require('./models/reviewModel');
 const Coupon = require('./models/couponModel');
 const CouponUsage = require('./models/couponUsageModel');
-const { OrderItem, DeliverySlot, Notification } = require('./models');
+const { OrderItem, DeliverySlot, Notification, SupportForm } = require('./models');
 
 // ===================
 // User Associations
@@ -83,3 +83,9 @@ DeliverySlot.hasMany(Order, { foreignKey: 'deliverySlotId', as: 'orders' });
 // ===================
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// ===================
+// SupportForm Associations
+// ===================
+User.hasMany(SupportForm, { foreignKey: 'userId', as: 'supportTickets'});
+SupportForm.belongsTo(User, { foreignKey: 'userId', as: 'user'});
