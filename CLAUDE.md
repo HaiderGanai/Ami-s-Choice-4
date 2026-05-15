@@ -98,6 +98,66 @@ New users must verify their email before logging in. The OTP mechanism reuses `p
 
 **User model field**: `isEmailVerified` (BOOLEAN, NOT NULL, default `false`)
 
+## Admin Panel (added 2026-05-15)
+
+All admin routes under `/api/v1/admin/`, protected by `isAdmin` middleware.
+
+### Auth
+- `POST /admin/login` — admin login (returns JWT)
+
+### Dashboard
+- `GET /admin/stats` — totalUsers, totalProducts, totalCategories, totalOrders, pendingOrders, totalRevenue
+
+### Users
+- `GET /admin/users` — paginated user list (excludes password/token fields)
+
+### Products (admin)
+- `GET /admin/products` — all products including blocked, paginated
+- `POST /admin/products` — create product (Cloudinary image upload)
+- `POST /admin/bulk-products` — bulk create products
+- `PUT /admin/products/:id` — update product (whitelisted fields only)
+- `PATCH /admin/products/:id/status` — block/unblock product (`{ isBlocked: true/false }`)
+- `DELETE /admin/products/:id` — hard delete
+
+**Model change**: `Product` has new `isBlocked` (BOOLEAN, default false). Public GET routes filter `isBlocked: false`.
+
+### Categories (admin)
+- `GET /admin/categories` — all categories including blocked
+- `POST /admin/categories` — create category
+- `PUT /admin/categories/:id` — update name/icon
+- `PATCH /admin/categories/:id/status` — block/unblock; blocking cascades `isBlocked: true` to all products in the category (transaction); unblocking does NOT auto-unblock products
+- `DELETE /admin/categories/:id` — returns 405 (categories cannot be deleted)
+
+**Model change**: `Categories` has new `isBlocked` (BOOLEAN, default false).
+
+### Orders (admin)
+- `GET /admin/orders` — all orders, paginated; optional `?search=` matches orderNumber (exact) or email (LIKE)
+- `GET /admin/orders/:orderNumber` — full order detail including items and delivery slot
+- `PATCH /admin/orders/:orderNumber/status` — strict forward-only transitions:
+  - `pending` → `dispatched` or `cancelled`
+  - `dispatched` → `delivered`
+  - `delivered` and `cancelled` are terminal
+
+### Coupons (admin)
+- `GET /admin/coupons` — list all coupons
+- `POST /admin/coupons` — create coupon
+- `POST /admin/coupons` — create coupon
+- `PATCH /admin/coupons/:code` — update coupon
+- `DELETE /admin/coupons/:code` — hard delete
+
+### Reviews (admin)
+- `GET /admin/reviews` — paginated list with product name and reviewer info
+- `DELETE /admin/reviews/:id` — hard delete review
+
+### Support Forms (admin)
+- `GET /admin/support-forms` — paginated list with submitter info
+
+### Route cleanup
+- `productsRoutes.js` — public read-only: GET /products, GET /products/:id, GET /best-selling
+- `categoriesRoutes.js` — public read-only: GET /categories (non-blocked only)
+- `couponRoutes.js` — empty (all coupon ops moved to /admin/coupons)
+- `orderRoutes.js` — removed PATCH /orders/status/:orderNumber (now at /admin/orders/:orderNumber/status)
+
 ## File Locations
 - Controllers: `src/controllers/`
 - Routes: `src/routes/`
