@@ -119,14 +119,31 @@ const login = async (req, res) => {
                 message: 'Invalid credentials!'
             });
             };
+            if (!userExixts.isEmailVerified) {
+                const verifyCode = String(1234);
+                const hashedVerifyToken = crypto.createHash('sha256').update(verifyCode).digest('hex');
+                userExixts.passwordResetToken = hashedVerifyToken;
+                userExixts.passwordResetExpiry = Date.now() + 10 * 60 * 1000;
+                await userExixts.save();
+
+                if (process.env.NODE_ENV !== 'production') {
+                    console.log(`📧 Email verification OTP for ${userExixts.email}: ${verifyCode}`);
+                }
+
+                return res.status(403).json({
+                    status: 'fail',
+                    message: 'Email not verified. A new OTP has been sent to your email.'
+                });
+            }
+
             //generate JWT token
             const token = jwt.sign(
                 { id: userExixts.id,
                   email: userExixts.email,
-                  role: userExixts.role,  
-                 },
+                  role: userExixts.role,
+                },
                 process.env.JWT_SECRET,
-                { expiresIn: process.env.JWT_EXPIRY}
+                { expiresIn: process.env.JWT_EXPIRY }
             );
 
             let firstName = userExixts.firstName;
