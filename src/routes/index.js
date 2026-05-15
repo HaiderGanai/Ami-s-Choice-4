@@ -8,6 +8,7 @@ const { orderRouter } = require("./orderRoutes");
 const { productRouter } = require("./productsRoutes");
 const { reviewRouter } = require("./reviewRoutes");
 const { userRouter } = require("./userRoutes");
+const { notificationRouter } = require("./notificationRoutes");
 const logger = require('../middlewares/loggerMiddleware');
 
 
@@ -22,6 +23,7 @@ const loadRoutes = (app) => {
     app.use('/api/v1', orderRouter);
     app.use('/api/v1', couponRouter);
     app.use('/api/v1', reviewRouter);
+    app.use('/api/v1', notificationRouter);
     app.use('/api/delivery-slots', deliverySlotRouter)
 
 //     app.all('/:path(*)', (req, res, next) => {

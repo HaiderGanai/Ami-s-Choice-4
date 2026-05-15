@@ -11,7 +11,7 @@ const Coupon = require('./couponModel');
 const CouponUsage = require('./couponUsageModel');
 const OrderItem = require('./orderProduct');
 const DeliverySlot = require('./deliverySlotModel');
-
+const Notification = require('./notificationModel');
 
 module.exports = {
   User,
@@ -23,5 +23,6 @@ module.exports = {
   CouponUsage,
   Review,
   Coupon,
-  DeliverySlot
+  DeliverySlot,
+  Notification,
 };
