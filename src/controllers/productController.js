@@ -513,7 +513,7 @@ const getAllProducts = async (req, res) => {
       includeTotal = "false" // Optional param to include total count
     } = req.query;
 
-    const whereClause = {};
+    const whereClause = { isBlocked: false };
 
     if (id) whereClause.id = id;
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
@@ -708,7 +708,7 @@ const bestSelling = async (req, res) => {
       includeTotal = "false"
     } = req.query;
 
-    const whereClause = {};
+    const whereClause = { isBlocked: false };
 
     if (id) whereClause.id = id;
     if (name) whereClause.name = { [Op.like]: `%${name}%` };
@@ -783,7 +783,7 @@ const bestSelling = async (req, res) => {
       include: [
         {
           model: Product,
-          where: whereClause,
+          where: { ...whereClause, isBlocked: false },
           attributes: ['id', 'name', 'price', 'discountPrice', 'image'],
         }
       ],
@@ -803,7 +803,7 @@ const bestSelling = async (req, res) => {
         include: [
           {
             model: Product,
-            where: whereClause,
+            where: { ...whereClause, isBlocked: false },
             attributes: []
           }
         ],
@@ -862,6 +862,12 @@ const getSingleProduct = async (req, res) => {
             status: 'fail',
             message: 'Product not found!'
         })
+    }
+    if (product.isBlocked) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'Product not found!'
+      });
     }
     res.status(200).json({
         status: 'success',
