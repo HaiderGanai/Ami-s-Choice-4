@@ -255,6 +255,94 @@ const adminDeleteProduct = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────
+// CATEGORIES (ADMIN)
+// ─────────────────────────────────────────
+
+const adminGetAllCategories = async (req, res) => {
+  try {
+    const categories = await Category.findAll({ order: [['createdAt', 'DESC']] });
+    return res.status(200).json({ status: 'success', data: { categories } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminCreateCategory = async (req, res) => {
+  try {
+    const { name, icon } = req.body;
+    if (!name) {
+      return res.status(400).json({ status: 'fail', message: 'Please enter a name!' });
+    }
+    const existing = await Category.findOne({ where: { name } });
+    if (existing) {
+      return res.status(409).json({ status: 'fail', message: 'This category already exists!' });
+    }
+    const category = await Category.create({ name, icon });
+    return res.status(201).json({ status: 'success', data: { category } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminUpdateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ status: 'fail', message: 'No data provided to update the category!' });
+    }
+    const category = await Category.findByPk(id);
+    if (!category) {
+      return res.status(404).json({ status: 'fail', message: 'Category not found!' });
+    }
+    const { name } = req.body;
+    if (name && name !== category.name) {
+      const conflict = await Category.findOne({ where: { name } });
+      if (conflict) {
+        return res.status(409).json({ status: 'fail', message: 'Another category with this name exists!' });
+      }
+    }
+    await category.update(req.body);
+    return res.status(200).json({
+      status: 'success',
+      data: { message: 'Category updated successfully!', category }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminUpdateCategoryStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isBlocked } = req.body;
+    if (typeof isBlocked !== 'boolean') {
+      return res.status(400).json({ status: 'fail', message: 'isBlocked must be a boolean.' });
+    }
+    const category = await Category.findByPk(id);
+    if (!category) {
+      return res.status(404).json({ status: 'fail', message: 'Category not found!' });
+    }
+    const t = await sequelize.transaction();
+    try {
+      await category.update({ isBlocked }, { transaction: t });
+      if (isBlocked) {
+        await Product.update({ isBlocked: true }, { where: { categoryId: id }, transaction: t });
+      }
+      await t.commit();
+    } catch (err) {
+      await t.rollback();
+      throw err;
+    }
+    const message = isBlocked
+      ? 'Category blocked. All products in this category have been blocked.'
+      : 'Category unblocked. Products must be unblocked individually.';
+    return res.status(200).json({ status: 'success', message, data: { category } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
 module.exports = {
   login,
   getAllUsers,
@@ -265,4 +353,8 @@ module.exports = {
   adminUpdateProduct,
   adminUpdateProductStatus,
   adminDeleteProduct,
+  adminGetAllCategories,
+  adminCreateCategory,
+  adminUpdateCategory,
+  adminUpdateCategoryStatus,
 };
