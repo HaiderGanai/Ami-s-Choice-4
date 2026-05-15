@@ -99,4 +99,159 @@ const getStats = async (req, res) => {
   }
 };
 
-module.exports = { login, getAllUsers, getStats };
+// ─────────────────────────────────────────
+// PRODUCTS (ADMIN)
+// ─────────────────────────────────────────
+
+const adminGetAllProducts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const offset = (page - 1) * limit;
+
+    const { count, rows: products } = await Product.findAndCountAll({
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']]
+    });
+
+    return res.status(200).json({
+      status: 'success',
+      data: { products },
+      pagination: {
+        totalItems: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        perPage: limit
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminCreateProduct = async (req, res) => {
+  try {
+    const { name, description, weight, price, stockQuantity, categoryId, productDiscount } = req.body;
+    if (!name || !description || !weight || !price || !stockQuantity || !categoryId) {
+      return res.status(400).json({ status: 'fail', message: 'Please enter all required fields!' });
+    }
+    const category = await Category.findByPk(categoryId);
+    if (!category) {
+      return res.status(404).json({ status: 'fail', message: 'This category does not exist!' });
+    }
+    const imagePath = req.file?.path || null;
+    const newProduct = await Product.create({
+      name, description, image: imagePath, weight, price,
+      productDiscount: productDiscount || 0,
+      stockQuantity,
+      isInStock: stockQuantity > 0,
+      categoryId
+    });
+    return res.status(201).json({
+      status: 'success',
+      message: 'Product added successfully!',
+      data: { product: newProduct }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!', error: error.message });
+  }
+};
+
+const adminBulkCreateProducts = async (req, res) => {
+  try {
+    const products = req.body;
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ status: 'fail', message: 'Request body must be a non-empty array of products.' });
+    }
+    for (const product of products) {
+      const { name, description, weight, price, stockQuantity, categoryId } = product;
+      if (!name?.trim() || !description?.trim() || isNaN(parseFloat(weight)) || isNaN(parseFloat(price)) || isNaN(parseInt(stockQuantity)) || isNaN(parseInt(categoryId))) {
+        return res.status(400).json({ status: 'fail', message: 'Each product must have: name, description, weight, price, stockQuantity, categoryId.' });
+      }
+      const category = await Category.findByPk(categoryId);
+      if (!category) {
+        return res.status(404).json({ status: 'fail', message: `Category with ID ${categoryId} does not exist.` });
+      }
+    }
+    const sanitized = products.map(p => ({
+      name: p.name, description: p.description, image: p.image || null,
+      weight: p.weight, price: p.price, productDiscount: p.productDiscount || 0,
+      stockQuantity: p.stockQuantity, isInStock: p.stockQuantity > 0, categoryId: p.categoryId
+    }));
+    const createdProducts = await Product.bulkCreate(sanitized);
+    return res.status(201).json({ status: 'success', data: { createdProducts } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!', error: error.message });
+  }
+};
+
+const adminUpdateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ status: 'fail', message: 'Product not found!' });
+    }
+    const updateData = { ...req.body };
+    if (req.file?.path) {
+      updateData.image = req.file.path;
+    }
+    await product.update(updateData);
+    return res.status(200).json({
+      status: 'success',
+      message: 'Product updated successfully!',
+      data: { product }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!', error: error.message });
+  }
+};
+
+const adminUpdateProductStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isBlocked } = req.body;
+    if (typeof isBlocked !== 'boolean') {
+      return res.status(400).json({ status: 'fail', message: 'isBlocked must be a boolean.' });
+    }
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ status: 'fail', message: 'Product not found!' });
+    }
+    await product.update({ isBlocked });
+    return res.status(200).json({
+      status: 'success',
+      message: `Product ${isBlocked ? 'blocked' : 'unblocked'} successfully.`,
+      data: { product }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminDeleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ status: 'fail', message: 'Product not found!' });
+    }
+    await product.destroy();
+    return res.status(200).json({ status: 'success', message: 'Product deleted successfully!' });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+module.exports = {
+  login,
+  getAllUsers,
+  getStats,
+  adminGetAllProducts,
+  adminCreateProduct,
+  adminBulkCreateProducts,
+  adminUpdateProduct,
+  adminUpdateProductStatus,
+  adminDeleteProduct,
+};
