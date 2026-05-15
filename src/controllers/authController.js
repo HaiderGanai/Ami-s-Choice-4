@@ -64,9 +64,19 @@ const register = async (req, res) => {
             profilePic: profilePicPath,
             role
         });
-        console.log("New Register Request")
+        const verifyCode = String(1234);
+        const hashedVerifyToken = crypto.createHash('sha256').update(verifyCode).digest('hex');
+        newUser.passwordResetToken = hashedVerifyToken;
+        newUser.passwordResetExpiry = Date.now() + 10 * 60 * 1000;
+        await newUser.save();
+
+        if (process.env.NODE_ENV !== 'production') {
+            console.log(`📧 Email verification OTP for ${email}: ${verifyCode}`);
+        }
+
         res.status(201).json({
             status: 'success',
+            message: 'Registration successful. Please verify your email.',
             data: {
                 firstName,
                 lastName,
