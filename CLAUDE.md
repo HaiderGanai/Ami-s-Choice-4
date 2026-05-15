@@ -33,7 +33,18 @@ All routes mounted under `/api/v1`:
 - `POST /api/v1/cart` — adds one product at a time (`productId`, `quantity`)
 - Already handles merge: if product exists in cart, quantity is summed (with stock cap check)
 - All cart routes are behind `verifyToken` — no guest access
-- `addToCart` recalculates the full cart summary on every add (N+1 product fetches inside the loop — known inefficiency)
+- `addToCart` delegates to `getCartWithTotals` for cart summary calculations (same as `getCart` and `cartPreview`) — no N+1 loop
+
+**`addToCart` response shape:**
+```json
+{
+  "data": { "productId", "quantity", "itemTotalPrice", "discount" },
+  "cartSummary": { "totalValue", "totalDiscount", "totalPayable" }
+}
+```
+- `totalValue` = original price subtotal (before discounts)
+- `totalDiscount` = total product discount amount
+- `totalPayable` = amount payable (after product discounts, before coupon)
 
 ## Planned Feature: Guest Cart Sync
 **Context** (discussed 2026-05-12):

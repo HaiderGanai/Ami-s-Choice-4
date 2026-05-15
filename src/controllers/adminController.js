@@ -330,6 +330,7 @@ const adminUpdateCategoryStatus = async (req, res) => {
         await Product.update({ isBlocked: true }, { where: { categoryId: id }, transaction: t });
       }
       await t.commit();
+      await category.reload();
     } catch (err) {
       await t.rollback();
       throw err;
