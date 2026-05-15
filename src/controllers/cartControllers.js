@@ -68,25 +68,8 @@ const addToCart = async (req, res) => {
       cartItem = await Cart.create({ userId, productId, productQuantity: quantity });
     }
 
-    // Runtime calculations
-    const itemPrice = Number(product.discountPrice);
-    const unitDiscount = Number(product.price) - itemPrice;
-    const itemTotalPrice = itemPrice * cartItem.productQuantity;
-    const discount = unitDiscount * cartItem.productQuantity;
-
-    // Cart summary
-    const allCartItems = await Cart.findAll({ where: { userId } });
-    let totalCartValue = 0;
-    let totalCartDiscount = 0;
-
-    for (const item of allCartItems) {
-      const prod = await Product.findByPk(item.productId);
-      if (!prod) continue;
-      const price = Number(prod.discountPrice);
-      const discountPerUnit = Number(prod.price) - price;
-      totalCartValue += price * item.productQuantity;
-      totalCartDiscount += discountPerUnit * item.productQuantity;
-    }
+    const { items, totals } = await getCartWithTotals(userId);
+    const addedItem = items.find(i => i.productId === productId);
 
     return res.status(200).json({
       status: 'success',
@@ -94,13 +77,15 @@ const addToCart = async (req, res) => {
       data: {
         productId: cartItem.productId,
         quantity: cartItem.productQuantity,
-        itemTotalPrice,
-        discount,
+        itemTotalPrice: addedItem ? Number(addedItem.itemTotalPrice) : 0,
+        discount: addedItem
+          ? (Number(addedItem.originalPricePerUnit) - Number(addedItem.discountPricePerUnit)) * cartItem.productQuantity
+          : 0,
       },
       cartSummary: {
-        totalValue: totalCartValue,
-        totalDiscount: totalCartDiscount,
-        totalPayable: totalCartValue -totalCartDiscount
+        totalValue: totals.originalSubtotal.toFixed(2),
+        totalDiscount: totals.productDiscount.toFixed(2),
+        totalPayable: totals.payableBeforeCoupon.toFixed(2),
       },
     });
 
