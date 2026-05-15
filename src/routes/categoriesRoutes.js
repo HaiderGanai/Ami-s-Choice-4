@@ -1,12 +1,8 @@
 const express = require('express');
-const { createCategory, getAllCategories, updateCategories, deleteCategories } = require('../controllers/categoryController');
-const { verifyToken } = require('../middlewares/jwtMiddleware');
-const { isAdmin } = require('../middlewares/isAdminMiddleware');
+const { getAllCategories, deleteCategories } = require('../controllers/categoryController');
 const categoryRouter = express.Router();
 
-categoryRouter.post('/categories',isAdmin, createCategory);
-categoryRouter.get('/categories',getAllCategories);
-categoryRouter.put('/categories/:id',isAdmin,updateCategories);
-categoryRouter.delete('/categories/:id',isAdmin,deleteCategories);
+categoryRouter.get('/categories', getAllCategories);
+categoryRouter.delete('/categories/:id', deleteCategories);
 
 module.exports = { categoryRouter };
