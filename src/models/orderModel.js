@@ -66,6 +66,10 @@ const Order = sequelize.define('order', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  cancelReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
 
 });
 

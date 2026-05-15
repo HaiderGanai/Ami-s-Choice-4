@@ -1,6 +1,6 @@
 const { Sequelize } = require("sequelize");
 const { sequelize } = require("../config/dbConnect");
-const { Cart, Product, Order, CouponUsage, OrderItem, DeliverySlot } = require("../models");
+const { Cart, Product, Order, CouponUsage, OrderItem, DeliverySlot, Notification } = require("../models");
 const { validateCoupon } = require("../utils/couponValidator");
 const { v4: uuidv4 } = require('uuid');
 const { checkoutSchema } = require("../validations/checkoutValidations");
@@ -218,7 +218,14 @@ const checkOut = async (req, res) => {
     // 4. Commit
     await t.commit();
 
-    // 5. Response
+    // 5. Notify user of new order
+    await Notification.create({
+      userId,
+      title: 'Order Placed',
+      body: `Your order ${orderNumber} has been placed successfully! Estimated delivery: ${estimatedDelivery}.`,
+    });
+
+    // 6. Response
     return res.status(201).json({
       status: "success",
       message: "Order placed successfully!",
@@ -379,7 +386,7 @@ const changeOrderStatus = async (req, res) => {
       });
     }
 
-    const validStatuses = ["pending", "cancelled", "delivered"];
+    const validStatuses = ["pending", "cancelled", "delivered", "dispatched"];
 
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({
@@ -416,6 +423,12 @@ const changeOrderStatus = async (req, res) => {
       await order.save();
     }
 
+    await Notification.create({
+      userId,
+      title: 'Order Status Updated',
+      body: `Your order ${orderNumber} status has been updated to "${status}".`,
+    });
+
     return res.status(200).json({
       status: "success",
       message: "Order status updated!",
@@ -433,6 +446,7 @@ const cancelOrder = async (req, res) => {
   try {
     const userId = req.user.id;
     const { orderNumber } = req.params;
+    const { cancelReason } = req.body;
 
     console.log("cancelOrder lookup:", { userId, orderNumber });
     const order = await Order.findOne({ where: { userId, orderNumber } });
@@ -450,7 +464,14 @@ const cancelOrder = async (req, res) => {
     }
 
     order.status = 'cancelled';
+    order.cancelReason = cancelReason || null;
     await order.save();
+
+    await Notification.create({
+      userId,
+      title: 'Order Cancelled',
+      body: `Your order ${orderNumber} has been cancelled.`,
+    });
 
     return res.status(200).json({ status: 'success', message: 'Order cancelled.' });
   } catch (error) {
