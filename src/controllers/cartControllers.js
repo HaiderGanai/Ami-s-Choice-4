@@ -278,37 +278,7 @@ const bulkAddToCart = async (req, res) => {
       }
     });
 
-    const cartItems = await Cart.findAll({
-      where: { userId },
-      include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'image', 'weight', 'price', 'discountPrice'] }]
-    });
-
-    let subtotal = 0;
-    let totalDiscount = 0;
-
-    const formattedCartItems = cartItems.map(item => {
-      const { id: cartItemId, productQuantity } = item;
-      const { id: productId, name, image, weight, price, discountPrice } = item.product;
-
-      const totalOriginalPrice = Number(price) * productQuantity;
-      const totalDiscountedPrice = Number(discountPrice) * productQuantity;
-      const itemDiscount = totalOriginalPrice - totalDiscountedPrice;
-
-      subtotal += totalDiscountedPrice;
-      totalDiscount += itemDiscount;
-
-      return {
-        id: cartItemId,
-        productId,
-        productName: name,
-        productImage: image,
-        productWeight: weight,
-        productQuantity,
-        itemTotalPrice: totalDiscountedPrice.toFixed(2),
-        originalPricePerUnit: price,
-        discountPricePerUnit: discountPrice
-      };
-    });
+    const { items: cartItems, totals } = await getCartWithTotals(userId);
 
     const skippedCount = skipped.length;
     const message = skippedCount > 0
@@ -319,10 +289,10 @@ const bulkAddToCart = async (req, res) => {
       status: 'success',
       message,
       data: {
-        cartItems: formattedCartItems,
-        subtotal: subtotal.toFixed(2),
-        discount: totalDiscount.toFixed(2),
-        totalPayable: (subtotal - totalDiscount).toFixed(2)
+        cartItems,
+        subtotal: totals.originalSubtotal.toFixed(2),
+        discount: totals.productDiscount.toFixed(2),
+        totalPayable: totals.payableBeforeCoupon.toFixed(2)
       },
       ...(skippedCount > 0 && { skipped })
     });
