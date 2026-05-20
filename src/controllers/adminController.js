@@ -270,7 +270,8 @@ const adminGetAllCategories = async (req, res) => {
 
 const adminCreateCategory = async (req, res) => {
   try {
-    const { name, icon } = req.body;
+    const { name } = req.body;
+    const icon = req.file?.path || null;
     if (!name) {
       return res.status(400).json({ status: 'fail', message: 'Please enter a name!' });
     }

@@ -48,7 +48,7 @@ adminRouter.delete('/products/:id', isAdmin, adminDeleteProduct);
 
 // Categories
 adminRouter.get('/categories', isAdmin, adminGetAllCategories);
-adminRouter.post('/categories', isAdmin, adminCreateCategory);
+adminRouter.post('/categories', isAdmin, upload.single('image'), adminCreateCategory);
 adminRouter.put('/categories/:id', isAdmin, adminUpdateCategory);
 adminRouter.patch('/categories/:id/status', isAdmin, adminUpdateCategoryStatus);
 
