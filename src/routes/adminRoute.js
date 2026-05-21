@@ -27,6 +27,10 @@ const {
   adminGetAllReviews,
   adminDeleteReview,
   adminGetSupportForms,
+  adminGetAllDeliverySlots,
+  adminCreateDeliverySlot,
+  adminUpdateDeliverySlot,
+  adminDeleteDeliverySlot,
 } = require('../controllers/adminController');
 
 // Auth
@@ -69,5 +73,11 @@ adminRouter.delete('/reviews/:id', isAdmin, adminDeleteReview);
 
 // Support Forms
 adminRouter.get('/support-forms', isAdmin, adminGetSupportForms);
+
+// Delivery Slots
+adminRouter.get('/delivery-slots', isAdmin, adminGetAllDeliverySlots);
+adminRouter.post('/delivery-slots', isAdmin, adminCreateDeliverySlot);
+adminRouter.put('/delivery-slots/:id', isAdmin, adminUpdateDeliverySlot);
+adminRouter.delete('/delivery-slots/:id', isAdmin, adminDeleteDeliverySlot);
 
 module.exports = { adminRouter };

@@ -282,6 +282,7 @@ const adminCreateCategory = async (req, res) => {
     const category = await Category.create({ name, icon });
     return res.status(201).json({ status: 'success', data: { category } });
   } catch (error) {
+    console.error('adminCreateCategory error:', error);
     return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
   }
 };
@@ -604,6 +605,76 @@ const adminDeleteReview = async (req, res) => {
 };
 
 // ─────────────────────────────────────────
+// DELIVERY SLOTS (ADMIN)
+// ─────────────────────────────────────────
+
+const adminGetAllDeliverySlots = async (req, res) => {
+  try {
+    const slots = await DeliverySlot.findAll({ order: [['sortOrder', 'ASC']] });
+    return res.status(200).json({ status: 'success', data: { slots } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminCreateDeliverySlot = async (req, res) => {
+  try {
+    const { label, cutoffTime, windowLabel, offsetDays, isActive, sortOrder } = req.body;
+    if (!label || !cutoffTime || !windowLabel || sortOrder === undefined) {
+      return res.status(400).json({ status: 'fail', message: 'label, cutoffTime, windowLabel, and sortOrder are required.' });
+    }
+    const slot = await DeliverySlot.create({
+      label,
+      cutoffTime,
+      windowLabel,
+      offsetDays: offsetDays ?? 0,
+      isActive: isActive ?? true,
+      sortOrder
+    });
+    return res.status(201).json({ status: 'success', message: 'Delivery slot created successfully!', data: { slot } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminUpdateDeliverySlot = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const slot = await DeliverySlot.findByPk(id);
+    if (!slot) {
+      return res.status(404).json({ status: 'fail', message: 'Delivery slot not found!' });
+    }
+    const { label, cutoffTime, windowLabel, offsetDays, isActive, sortOrder } = req.body;
+    const updateData = {};
+    if (label !== undefined) updateData.label = label;
+    if (cutoffTime !== undefined) updateData.cutoffTime = cutoffTime;
+    if (windowLabel !== undefined) updateData.windowLabel = windowLabel;
+    if (offsetDays !== undefined) updateData.offsetDays = offsetDays;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+
+    await slot.update(updateData);
+    return res.status(200).json({ status: 'success', message: 'Delivery slot updated successfully!', data: { slot } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const adminDeleteDeliverySlot = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const slot = await DeliverySlot.findByPk(id);
+    if (!slot) {
+      return res.status(404).json({ status: 'fail', message: 'Delivery slot not found!' });
+    }
+    await slot.destroy();
+    return res.status(200).json({ status: 'success', message: 'Delivery slot deleted successfully!' });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+// ─────────────────────────────────────────
 // SUPPORT FORMS (ADMIN)
 // ─────────────────────────────────────────
 
@@ -654,4 +725,8 @@ module.exports = {
   adminGetAllReviews,
   adminDeleteReview,
   adminGetSupportForms,
+  adminGetAllDeliverySlots,
+  adminCreateDeliverySlot,
+  adminUpdateDeliverySlot,
+  adminDeleteDeliverySlot,
 };
