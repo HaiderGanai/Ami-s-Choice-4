@@ -8,6 +8,7 @@ const {
   getAllUsers,
   getStats,
   adminGetAllProducts,
+  adminGetProductById,
   adminCreateProduct,
   adminBulkCreateProducts,
   adminUpdateProduct,
@@ -47,6 +48,7 @@ adminRouter.get('/users', isAdmin, getAllUsers);
 
 // Products
 adminRouter.get('/products', isAdmin, adminGetAllProducts);
+adminRouter.get('/products/:id', isAdmin, adminGetProductById);
 adminRouter.post('/products', isAdmin, upload.single('image'), adminCreateProduct);
 adminRouter.post('/bulk-products', isAdmin, adminBulkCreateProducts);
 adminRouter.put('/products/:id', isAdmin, upload.single('image'), adminUpdateProduct);

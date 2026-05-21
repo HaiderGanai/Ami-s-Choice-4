@@ -141,6 +141,21 @@ const adminGetAllProducts = async (req, res) => {
   }
 };
 
+const adminGetProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findByPk(id, {
+      include: [{ model: Category, attributes: ['id', 'name'] }]
+    });
+    if (!product) {
+      return res.status(404).json({ status: 'fail', message: 'Product not found!' });
+    }
+    return res.status(200).json({ status: 'success', data: { product } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
 const adminCreateProduct = async (req, res) => {
   try {
     const { name, description, weight, price, stockQuantity, categoryId, productDiscount } = req.body;
@@ -870,6 +885,7 @@ module.exports = {
   getAllUsers,
   getStats,
   adminGetAllProducts,
+  adminGetProductById,
   adminCreateProduct,
   adminBulkCreateProducts,
   adminUpdateProduct,
