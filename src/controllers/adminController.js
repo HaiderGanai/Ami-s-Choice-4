@@ -46,7 +46,18 @@ const getAllUsers = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const offset = (page - 1) * limit;
 
+    const { search } = req.query;
+    const whereClause = {};
+    if (search) {
+      whereClause[Op.or] = [
+        { firstName: { [Op.like]: `%${search}%` } },
+        { lastName: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
     const { count, rows: users } = await User.findAndCountAll({
+      where: whereClause,
       attributes: { exclude: ['password', 'passwordResetToken', 'passwordResetExpiry'] },
       limit,
       offset,
@@ -367,7 +378,9 @@ const adminGetAllOrders = async (req, res) => {
     if (search) {
       whereClause[Op.or] = [
         { orderNumber: search },
-        { email: { [Op.like]: `%${search}%` } }
+        { email: { [Op.like]: `%${search}%` } },
+        { firstName: { [Op.like]: `%${search}%` } },
+        { lastName: { [Op.like]: `%${search}%` } }
       ];
     }
 
