@@ -10,7 +10,7 @@ app.use(cors());
 require('./associations');
 app.use('/uploads', express.static('uploads'));
 
-sequelize.sync({ force: true });
+sequelize.sync({ alter: true });
 
 loadRoutes(app);
 
