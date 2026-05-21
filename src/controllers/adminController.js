@@ -355,9 +355,15 @@ const adminGetAllOrders = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const offset = (page - 1) * limit;
-    const { search } = req.query;
+    const { search, status } = req.query;
+
+    const VALID_STATUSES = ['pending', 'dispatched', 'delivered', 'cancelled'];
+    if (status && !VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ status: 'fail', message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}.` });
+    }
 
     const whereClause = {};
+    if (status) whereClause.status = status;
     if (search) {
       whereClause[Op.or] = [
         { orderNumber: search },
