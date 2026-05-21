@@ -837,7 +837,18 @@ const adminGetSupportForms = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const offset = (page - 1) * limit;
 
+    const { search } = req.query;
+    const whereClause = {};
+    if (search) {
+      whereClause[Op.or] = [
+        { id: search },
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
     const { count, rows: submissions } = await SupportForm.findAndCountAll({
+      where: whereClause,
       include: [{ model: User, as: 'user', attributes: ['firstName', 'lastName', 'email'] }],
       limit,
       offset,
