@@ -3,6 +3,18 @@ const { sequelize } = require('../config/dbConnect');
 const { User, Category, Product, Order, OrderItem, Review, Coupon, Notification, SupportForm, DeliverySlot } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const cloudinary = require('../config/cloudinary');
+
+// Extracts Cloudinary public_id from a full URL, e.g.
+// https://res.cloudinary.com/.../upload/v123/amichoice/products/abc.jpg → amichoice/products/abc
+const getCloudinaryPublicId = (url) => {
+  const parts = url.split('/');
+  const uploadIdx = parts.indexOf('upload');
+  const pathParts = parts.slice(uploadIdx + 2); // skip 'upload' and version segment
+  const last = pathParts[pathParts.length - 1].replace(/\.[^/.]+$/, ''); // strip extension
+  pathParts[pathParts.length - 1] = last;
+  return pathParts.join('/');
+};
 
 // ─────────────────────────────────────────
 // AUTH
@@ -329,7 +341,8 @@ const adminCreateCategory = async (req, res) => {
 const adminUpdateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!req.body || Object.keys(req.body).length === 0) {
+    const hasBody = req.body && Object.keys(req.body).length > 0;
+    if (!hasBody && !req.file) {
       return res.status(400).json({ status: 'fail', message: 'No data provided to update the category!' });
     }
     const category = await Category.findByPk(id);
@@ -343,7 +356,17 @@ const adminUpdateCategory = async (req, res) => {
         return res.status(409).json({ status: 'fail', message: 'Another category with this name exists!' });
       }
     }
-    await category.update(req.body);
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (req.file?.path) {
+      if (category.icon) {
+        try {
+          await cloudinary.uploader.destroy(getCloudinaryPublicId(category.icon));
+        } catch (_) {}
+      }
+      updateData.icon = req.file.path;
+    }
+    await category.update(updateData);
     return res.status(200).json({
       status: 'success',
       data: { message: 'Category updated successfully!', category }

@@ -60,7 +60,7 @@ adminRouter.delete('/products/:id', isAdmin, adminDeleteProduct);
 adminRouter.get('/categories', isAdmin, adminGetAllCategories);
 adminRouter.get('/categories/:id', isAdmin, adminGetCategoryById);
 adminRouter.post('/categories', isAdmin, upload.single('image'), adminCreateCategory);
-adminRouter.put('/categories/:id', isAdmin, adminUpdateCategory);
+adminRouter.put('/categories/:id', isAdmin, upload.single('image'), adminUpdateCategory);
 adminRouter.patch('/categories/:id/status', isAdmin, adminUpdateCategoryStatus);
 
 // Dashboard
