@@ -15,6 +15,7 @@ const {
   adminUpdateProductStatus,
   adminDeleteProduct,
   adminGetAllCategories,
+  adminGetCategoryById,
   adminCreateCategory,
   adminUpdateCategory,
   adminUpdateCategoryStatus,
@@ -57,6 +58,7 @@ adminRouter.delete('/products/:id', isAdmin, adminDeleteProduct);
 
 // Categories
 adminRouter.get('/categories', isAdmin, adminGetAllCategories);
+adminRouter.get('/categories/:id', isAdmin, adminGetCategoryById);
 adminRouter.post('/categories', isAdmin, upload.single('image'), adminCreateCategory);
 adminRouter.put('/categories/:id', isAdmin, adminUpdateCategory);
 adminRouter.patch('/categories/:id/status', isAdmin, adminUpdateCategoryStatus);
