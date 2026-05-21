@@ -18,6 +18,8 @@ const {
   adminUpdateCategory,
   adminUpdateCategoryStatus,
   adminGetAllOrders,
+  adminGetOrderRevenue,
+  adminGetOrderInsights,
   adminGetOrderDetail,
   adminUpdateOrderStatus,
   adminListCoupons,
@@ -58,6 +60,8 @@ adminRouter.patch('/categories/:id/status', isAdmin, adminUpdateCategoryStatus);
 
 // Orders
 adminRouter.get('/orders', isAdmin, adminGetAllOrders);
+adminRouter.get('/orders/revenue', isAdmin, adminGetOrderRevenue);
+adminRouter.get('/orders/insights/:period', isAdmin, adminGetOrderInsights);
 adminRouter.get('/orders/:orderNumber', isAdmin, adminGetOrderDetail);
 adminRouter.patch('/orders/:orderNumber/status', isAdmin, adminUpdateOrderStatus);
 

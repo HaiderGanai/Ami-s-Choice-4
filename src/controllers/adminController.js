@@ -448,6 +448,91 @@ const adminGetOrderDetail = async (req, res) => {
   }
 };
 
+const adminGetOrderRevenue = async (req, res) => {
+  try {
+    const revenue = await Order.sum('totalAmount', { where: { status: 'delivered' } });
+    return res.status(200).json({
+      status: 'success',
+      data: { totalRevenue: parseFloat(revenue || 0).toFixed(2) }
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const pad = n => String(n).padStart(2, '0');
+const fmtTime = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const fmtDateTime = d => `${d.getDate()} ${MONTHS[d.getMonth()]} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+const adminGetOrderInsights = async (req, res) => {
+  try {
+    const { period } = req.params;
+    if (!['daily', 'weekly', 'monthly'].includes(period)) {
+      return res.status(400).json({ status: 'fail', message: "period must be 'daily', 'weekly', or 'monthly'." });
+    }
+
+    const now = new Date();
+    let rangeStart;
+    let bucketMs;
+
+    if (period === 'daily') {
+      rangeStart = new Date(now);
+      rangeStart.setHours(rangeStart.getHours() - 24, 0, 0, 0);
+      bucketMs = 60 * 60 * 1000;
+    } else if (period === 'weekly') {
+      rangeStart = new Date(now);
+      rangeStart.setDate(rangeStart.getDate() - 7);
+      rangeStart.setHours(0, 0, 0, 0);
+      bucketMs = 24 * 60 * 60 * 1000;
+    } else {
+      rangeStart = new Date(now);
+      rangeStart.setMonth(rangeStart.getMonth() - 1);
+      rangeStart.setHours(0, 0, 0, 0);
+      bucketMs = 24 * 60 * 60 * 1000;
+    }
+
+    // Build bucket boundaries in ms
+    const buckets = [];
+    let cursor = rangeStart.getTime();
+    const nowMs = now.getTime();
+    while (cursor < nowMs) {
+      const to = Math.min(cursor + bucketMs, nowMs);
+      buckets.push({ fromMs: cursor, toMs: to, total: 0, byStatus: { pending: 0, dispatched: 0, delivered: 0, cancelled: 0 } });
+      cursor += bucketMs;
+    }
+
+    // Single query for the whole range
+    const orders = await Order.findAll({
+      where: { createdAt: { [Op.between]: [rangeStart, now] } },
+      attributes: ['createdAt', 'status'],
+      raw: true
+    });
+
+    // Distribute each order into its bucket
+    for (const order of orders) {
+      const ts = new Date(order.createdAt).getTime();
+      const idx = Math.min(Math.floor((ts - rangeStart.getTime()) / bucketMs), buckets.length - 1);
+      if (idx >= 0) {
+        buckets[idx].byStatus[order.status]++;
+        buckets[idx].total++;
+      }
+    }
+
+    const fmt = period === 'daily' ? fmtTime : fmtDateTime;
+    const result = buckets.map(b => ({
+      from: fmt(new Date(b.fromMs)),
+      to: fmt(new Date(b.toMs)),
+      total: b.total,
+      byStatus: b.byStatus
+    }));
+
+    return res.status(200).json({ status: 'success', data: { period, buckets: result } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
 const VALID_TRANSITIONS = {
   pending: ['dispatched', 'cancelled'],
   dispatched: ['delivered'],
@@ -722,6 +807,8 @@ module.exports = {
   adminUpdateCategory,
   adminUpdateCategoryStatus,
   adminGetAllOrders,
+  adminGetOrderRevenue,
+  adminGetOrderInsights,
   adminGetOrderDetail,
   adminUpdateOrderStatus,
   adminListCoupons,
