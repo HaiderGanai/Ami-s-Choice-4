@@ -17,6 +17,7 @@ const {
   adminCreateCategory,
   adminUpdateCategory,
   adminUpdateCategoryStatus,
+  adminGetDashboard,
   adminGetAllOrders,
   adminGetOrderRevenue,
   adminGetOrderInsights,
@@ -57,6 +58,9 @@ adminRouter.get('/categories', isAdmin, adminGetAllCategories);
 adminRouter.post('/categories', isAdmin, upload.single('image'), adminCreateCategory);
 adminRouter.put('/categories/:id', isAdmin, adminUpdateCategory);
 adminRouter.patch('/categories/:id/status', isAdmin, adminUpdateCategoryStatus);
+
+// Dashboard
+adminRouter.get('/dashboard', isAdmin, adminGetDashboard);
 
 // Orders
 adminRouter.get('/orders', isAdmin, adminGetAllOrders);
