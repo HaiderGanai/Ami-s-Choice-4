@@ -41,7 +41,7 @@ const Product = sequelize.define('product', {
         allowNull: false
     },
     categoryId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: true
     },
     isBlocked: {
