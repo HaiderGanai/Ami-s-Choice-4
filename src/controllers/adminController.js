@@ -163,8 +163,20 @@ const adminGetAllProducts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const offset = (page - 1) * limit;
+    const { search, inStock } = req.query;
+
+    const whereClause = {};
+    if (search) {
+      whereClause.name = { [Op.like]: `%${search}%` };
+    }
+    if (inStock === 'true') {
+      whereClause.isInStock = true;
+    } else if (inStock === 'false') {
+      whereClause.isInStock = false;
+    }
 
     const { count, rows: products } = await Product.findAndCountAll({
+      where: whereClause,
       limit,
       offset,
       order: [['createdAt', 'DESC']]
