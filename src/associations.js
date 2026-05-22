@@ -16,76 +16,70 @@ const { OrderItem, DeliverySlot, Notification, SupportForm } = require('./models
 // ===================
 // User Associations
 // ===================
-User.hasOne(Cart, { foreignKey: 'userId' });
-Cart.belongsTo(User, { foreignKey: 'userId' });
+const fk = (key, extra = {}) => ({ foreignKey: key, constraints: false, ...extra });
 
-User.hasMany(Order, { foreignKey: 'userId' });
-Order.belongsTo(User, { foreignKey: 'userId' });
+User.hasOne(Cart, fk('userId'));
+Cart.belongsTo(User, fk('userId'));
 
-User.hasMany(Review, { foreignKey: 'userId' });
-Review.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Order, fk('userId'));
+Order.belongsTo(User, fk('userId'));
 
-User.hasMany(Coupon, { foreignKey: 'userId' });
-Coupon.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Review, fk('userId'));
+Review.belongsTo(User, fk('userId'));
+
+User.hasMany(Coupon, fk('userId'));
+Coupon.belongsTo(User, fk('userId'));
 
 // ===================
 // Product Associations
 // ===================
-Product.belongsTo(Category, { foreignKey: 'categoryId' });
-Category.hasMany(Product, { foreignKey: 'categoryId' });
+Product.belongsTo(Category, fk('categoryId'));
+Category.hasMany(Product, fk('categoryId'));
 
-Product.hasMany(Review, { foreignKey: 'productId' });
-Review.belongsTo(Product, { foreignKey: 'productId' });
+Product.hasMany(Review, fk('productId'));
+Review.belongsTo(Product, fk('productId'));
 
-Product.hasMany(Cart, { foreignKey: 'productId', as: 'cart'});
-Cart.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+Product.hasMany(Cart, fk('productId', { as: 'cart' }));
+Cart.belongsTo(Product, fk('productId', { as: 'product' }));
 
-Product.hasMany(Order, { foreignKey: 'productId' });
-Order.belongsTo(Product, { foreignKey: 'productId' });
-
-// ===================
-// Order-Coupon Associations
-// ===================
-Order.hasMany(Coupon, { foreignKey: 'orderId' });
-Coupon.belongsTo(Order, { foreignKey: 'orderId' });
+Product.hasMany(Order, fk('productId'));
+Order.belongsTo(Product, fk('productId'));
 
 // ===================
 // Order-Coupon Associations
 // ===================
-Coupon.hasMany(CouponUsage, { foreignKey: 'couponId' });
-CouponUsage.belongsTo(Coupon, { foreignKey: 'couponId' });
+Order.hasMany(Coupon, fk('orderId'));
+Coupon.belongsTo(Order, fk('orderId'));
 
 // ===================
-// User-CouponUsage Associations
+// CouponUsage Associations
 // ===================
-User.hasMany(CouponUsage, { foreignKey: 'userId' });
-CouponUsage.belongsTo(User, { foreignKey: 'userId' });
-    
+Coupon.hasMany(CouponUsage, fk('couponId'));
+CouponUsage.belongsTo(Coupon, fk('couponId'));
 
-// console.log(Cart.associations)
-// console.log("cart association::",Cart.associations);
-// console.log("product association::",Product.associations);
+User.hasMany(CouponUsage, fk('userId'));
+CouponUsage.belongsTo(User, fk('userId'));
 
 // Order - OrderItem
-Order.hasMany(OrderItem, { foreignKey: 'orderId' });
-OrderItem.belongsTo(Order, { foreignKey: 'orderId' });
+Order.hasMany(OrderItem, fk('orderId'));
+OrderItem.belongsTo(Order, fk('orderId'));
 
 // Product - OrderItem
-Product.hasMany(OrderItem, { foreignKey: 'productId' });
-OrderItem.belongsTo(Product, { foreignKey: 'productId' });
+Product.hasMany(OrderItem, fk('productId'));
+OrderItem.belongsTo(Product, fk('productId'));
 
-// Order - DeliverySlot Associations
-Order.belongsTo(DeliverySlot, { foreignKey: 'deliverySlotId', as: 'deliverySlot' });
-DeliverySlot.hasMany(Order, { foreignKey: 'deliverySlotId', as: 'orders' });
+// Order - DeliverySlot
+Order.belongsTo(DeliverySlot, fk('deliverySlotId', { as: 'deliverySlot' }));
+DeliverySlot.hasMany(Order, fk('deliverySlotId', { as: 'orders' }));
 
 // ===================
 // Notification Associations
 // ===================
-User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
-Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(Notification, fk('userId', { as: 'notifications' }));
+Notification.belongsTo(User, fk('userId', { as: 'user' }));
 
 // ===================
 // SupportForm Associations
 // ===================
-User.hasMany(SupportForm, { foreignKey: 'userId', as: 'supportTickets'});
-SupportForm.belongsTo(User, { foreignKey: 'userId', as: 'user'});
+User.hasMany(SupportForm, fk('userId', { as: 'supportTickets' }));
+SupportForm.belongsTo(User, fk('userId', { as: 'user' }));

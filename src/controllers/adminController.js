@@ -855,11 +855,18 @@ const adminGetAllDeliverySlots = async (req, res) => {
 };
 
 const adminCreateDeliverySlot = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { label, cutoffTime, windowLabel, offsetDays, isActive, sortOrder } = req.body;
     if (!label || !cutoffTime || !windowLabel || sortOrder === undefined) {
+      await t.rollback();
       return res.status(400).json({ status: 'fail', message: 'label, cutoffTime, windowLabel, and sortOrder are required.' });
     }
+    await DeliverySlot.increment('sortOrder', {
+      by: 1,
+      where: { sortOrder: { [Op.gte]: sortOrder } },
+      transaction: t
+    });
     const slot = await DeliverySlot.create({
       label,
       cutoffTime,
@@ -867,18 +874,22 @@ const adminCreateDeliverySlot = async (req, res) => {
       offsetDays: offsetDays ?? 0,
       isActive: isActive ?? true,
       sortOrder
-    });
+    }, { transaction: t });
+    await t.commit();
     return res.status(201).json({ status: 'success', message: 'Delivery slot created successfully!', data: { slot } });
   } catch (error) {
+    await t.rollback();
     return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
   }
 };
 
 const adminUpdateDeliverySlot = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const slot = await DeliverySlot.findByPk(id);
+    const slot = await DeliverySlot.findByPk(id, { transaction: t });
     if (!slot) {
+      await t.rollback();
       return res.status(404).json({ status: 'fail', message: 'Delivery slot not found!' });
     }
     const { label, cutoffTime, windowLabel, offsetDays, isActive, sortOrder } = req.body;
@@ -888,25 +899,55 @@ const adminUpdateDeliverySlot = async (req, res) => {
     if (windowLabel !== undefined) updateData.windowLabel = windowLabel;
     if (offsetDays !== undefined) updateData.offsetDays = offsetDays;
     if (isActive !== undefined) updateData.isActive = isActive;
-    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
 
-    await slot.update(updateData);
+    if (sortOrder !== undefined && sortOrder !== slot.sortOrder) {
+      const oldPos = slot.sortOrder;
+      const newPos = sortOrder;
+      if (newPos < oldPos) {
+        await DeliverySlot.increment('sortOrder', {
+          by: 1,
+          where: { id: { [Op.ne]: id }, sortOrder: { [Op.gte]: newPos, [Op.lt]: oldPos } },
+          transaction: t
+        });
+      } else {
+        await DeliverySlot.increment('sortOrder', {
+          by: -1,
+          where: { id: { [Op.ne]: id }, sortOrder: { [Op.gt]: oldPos, [Op.lte]: newPos } },
+          transaction: t
+        });
+      }
+      updateData.sortOrder = newPos;
+    }
+
+    await slot.update(updateData, { transaction: t });
+    await t.commit();
     return res.status(200).json({ status: 'success', message: 'Delivery slot updated successfully!', data: { slot } });
   } catch (error) {
+    await t.rollback();
     return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
   }
 };
 
 const adminDeleteDeliverySlot = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const slot = await DeliverySlot.findByPk(id);
+    const slot = await DeliverySlot.findByPk(id, { transaction: t });
     if (!slot) {
+      await t.rollback();
       return res.status(404).json({ status: 'fail', message: 'Delivery slot not found!' });
     }
-    await slot.destroy();
+    const deletedOrder = slot.sortOrder;
+    await slot.destroy({ transaction: t });
+    await DeliverySlot.increment('sortOrder', {
+      by: -1,
+      where: { sortOrder: { [Op.gt]: deletedOrder } },
+      transaction: t
+    });
+    await t.commit();
     return res.status(200).json({ status: 'success', message: 'Delivery slot deleted successfully!' });
   } catch (error) {
+    await t.rollback();
     return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
   }
 };
