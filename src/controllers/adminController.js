@@ -332,7 +332,11 @@ const adminDeleteProduct = async (req, res) => {
 
 const adminGetAllCategories = async (req, res) => {
   try {
-    const categories = await Category.findAll({ order: [['createdAt', 'DESC']] });
+    const whereClause = {};
+    if (req.query.search) {
+      whereClause.name = { [Op.like]: `%${req.query.search}%` };
+    }
+    const categories = await Category.findAll({ where: whereClause, order: [['createdAt', 'DESC']] });
     return res.status(200).json({ status: 'success', data: { categories } });
   } catch (error) {
     return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
