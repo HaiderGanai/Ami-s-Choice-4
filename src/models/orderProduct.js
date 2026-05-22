@@ -3,7 +3,7 @@ const { sequelize } = require('../config/dbConnect');
 
 const OrderItem = sequelize.define('orderItem', {
   orderId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: false,
   },
   productId: {
