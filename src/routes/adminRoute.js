@@ -12,7 +12,6 @@ const {
   adminCreateProduct,
   adminBulkCreateProducts,
   adminUpdateProduct,
-  adminUpdateProductStatus,
   adminDeleteProduct,
   adminGetAllCategories,
   adminGetCategoryById,
@@ -53,7 +52,6 @@ adminRouter.get('/products/:id', isAdmin, adminGetProductById);
 adminRouter.post('/products', isAdmin, upload.single('image'), adminCreateProduct);
 adminRouter.post('/bulk-products', isAdmin, adminBulkCreateProducts);
 adminRouter.put('/products/:id', isAdmin, upload.single('image'), adminUpdateProduct);
-adminRouter.patch('/products/:id/status', isAdmin, adminUpdateProductStatus);
 adminRouter.delete('/products/:id', isAdmin, adminDeleteProduct);
 
 // Categories

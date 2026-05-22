@@ -232,7 +232,7 @@ const adminUpdateProduct = async (req, res) => {
       return res.status(404).json({ status: 'fail', message: 'Product not found!' });
     }
 
-    const { name, description, weight, price, stockQuantity, categoryId, productDiscount } = req.body;
+    const { name, description, weight, price, stockQuantity, categoryId, productDiscount, isBlocked } = req.body;
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
@@ -244,6 +244,7 @@ const adminUpdateProduct = async (req, res) => {
     }
     if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (productDiscount !== undefined) updateData.productDiscount = productDiscount;
+    if (isBlocked !== undefined) updateData.isBlocked = isBlocked;
     if (req.file?.path) updateData.image = req.file.path;
 
     await product.update(updateData);
@@ -925,7 +926,6 @@ module.exports = {
   adminCreateProduct,
   adminBulkCreateProducts,
   adminUpdateProduct,
-  adminUpdateProductStatus,
   adminDeleteProduct,
   adminGetAllCategories,
   adminGetCategoryById,
