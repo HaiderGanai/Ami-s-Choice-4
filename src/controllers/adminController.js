@@ -746,7 +746,9 @@ const adminUpdateOrderStatus = async (req, res) => {
 
 const adminListCoupons = async (req, res) => {
   try {
-    const coupons = await Coupon.findAll({ order: [['createdAt', 'DESC']] });
+    const { search } = req.query;
+    const whereClause = search ? { code: { [Op.like]: `%${search}%` } } : {};
+    const coupons = await Coupon.findAll({ where: whereClause, order: [['createdAt', 'DESC']] });
     return res.status(200).json({ status: 'success', data: { coupons } });
   } catch (error) {
     return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
