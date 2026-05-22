@@ -91,6 +91,38 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+const adminGetUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findByPk(id, {
+      attributes: { exclude: ['password', 'passwordResetToken', 'passwordResetExpiry'] },
+      include: [
+        {
+          model: Order,
+          include: [
+            {
+              model: OrderItem,
+              include: [{ model: Product, attributes: ['id', 'name', 'image', 'price', 'weight'] }]
+            },
+            {
+              model: DeliverySlot,
+              as: 'deliverySlot',
+              attributes: ['label', 'windowLabel', 'offsetDays']
+            }
+          ],
+          order: [['createdAt', 'DESC']]
+        }
+      ]
+    });
+    if (!user) {
+      return res.status(404).json({ status: 'fail', message: 'User not found!' });
+    }
+    return res.status(200).json({ status: 'success', data: { user } });
+  } catch (error) {
+    return res.status(500).json({ status: 'fail', message: 'Something went wrong!' });
+  }
+};
+
 // ─────────────────────────────────────────
 // DASHBOARD STATS
 // ─────────────────────────────────────────
@@ -920,6 +952,7 @@ const adminGetSupportForms = async (req, res) => {
 module.exports = {
   login,
   getAllUsers,
+  adminGetUserById,
   getStats,
   adminGetAllProducts,
   adminGetProductById,

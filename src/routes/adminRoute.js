@@ -6,6 +6,7 @@ const upload = require('../middlewares/upload');
 const {
   login,
   getAllUsers,
+  adminGetUserById,
   getStats,
   adminGetAllProducts,
   adminGetProductById,
@@ -45,6 +46,7 @@ adminRouter.get('/stats', isAdmin, getStats);
 
 // Users
 adminRouter.get('/users', isAdmin, getAllUsers);
+adminRouter.get('/users/:id', isAdmin, adminGetUserById);
 
 // Products
 adminRouter.get('/products', isAdmin, adminGetAllProducts);
