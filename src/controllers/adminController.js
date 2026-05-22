@@ -824,11 +824,27 @@ const adminGetAllReviews = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const offset = (page - 1) * limit;
+    const { search } = req.query;
+
+    const userInclude = {
+      model: User,
+      attributes: ['firstName', 'lastName', 'email']
+    };
+    if (search) {
+      userInclude.where = {
+        [Op.or]: [
+          { firstName: { [Op.like]: `%${search}%` } },
+          { lastName: { [Op.like]: `%${search}%` } },
+          { email: { [Op.like]: `%${search}%` } }
+        ]
+      };
+      userInclude.required = true;
+    }
 
     const { count, rows: reviews } = await Review.findAndCountAll({
       include: [
         { model: Product, attributes: ['name', 'image'] },
-        { model: User, attributes: ['firstName', 'lastName', 'email'] }
+        userInclude
       ],
       limit,
       offset,
